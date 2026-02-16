@@ -163,6 +163,11 @@ jobs:
           labels: |
             org.opencontainers.image.description=Agent image for ${{ env.AGENT }}
 
+      - name: "Test: Pull final image for local tests"
+        run: |
+          set -euo pipefail
+          docker pull "${IMAGE_REF}@${{ steps.build_image.outputs.digest }}"
+
       - name: "Test: Setup BATS testing framework"
         uses: mig4/setup-bats@v1.2.0
 
