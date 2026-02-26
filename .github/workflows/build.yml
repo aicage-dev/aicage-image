@@ -144,7 +144,7 @@ jobs:
           } | tee /dev/stderr >> "$GITHUB_ENV"
 
       - name: Verify base image signature
-        uses: aicage/github-actions/.github/actions/cosign-verify@0.2.0
+        uses: aicage/github-actions/.github/actions/cosign-verify@0.2.1
         with:
           image: ${{ env.BASE_IMAGE_DIGEST_REF }}
 
@@ -199,7 +199,7 @@ jobs:
   multiarch:
     name: Run multi-arch sign/provenance/publish
     needs: build
-    uses: aicage/github-actions/.github/workflows/multiarch-image-build-sign-provenance.yml@0.2.0
+    uses: aicage/github-actions/.github/workflows/multiarch-image-build-sign-provenance.yml@0.2.1
     with:
       image_ref: ${{ needs.build.outputs.IMAGE_REF }}
       version_tag: ${{ needs.build.outputs.VERSION_TAG }}
