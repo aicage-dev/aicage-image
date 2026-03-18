@@ -14,40 +14,7 @@ concurrency:
 jobs:
 
   lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
-
-      - name: "Test: Set up Python"
-        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
-        with:
-          python-version: "3.x"
-
-      - name: "Test: Remove Python yq and keep using Go yq"
-        run: |
-          python -m pip uninstall -y yq
-
-      - name: "Test: Install lint deps"
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-
-      - name: "Test: Run linters (yamllint, ruff, pymarkdown)"
-        run: |
-          yamllint .
-          ruff check .
-          pymarkdown --config .pymarkdown.json scan --recurse --exclude './.venv/' .
-
-      - name: "Test: Validate config and agents with schemas"
-        run: |
-          check-jsonschema \
-            --schemafile doc/validation/agent.schema.json \
-            agents/*/agent.yml
-          check-jsonschema \
-            --schemafile doc/validation/config.schema.json \
-            config.yml
+    uses: ./.github/workflows/lint.yml
 
   version-image-check:
     name: Check agents version.sh with util-image
@@ -55,114 +22,20 @@ jobs:
 
   matrix:
     name: Build matrix
-    runs-on: ubuntu-latest
     needs: lint
-    env:
-      ROOT_DIR: ${{ github.workspace }}
-    outputs:
-      MATRIX_IMAGES: ${{ steps.set-matrix.outputs.MATRIX_IMAGES }}
-      MATRIX_NR_IMAGES: ${{ steps.set-matrix.outputs.MATRIX_NR_IMAGES }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
-
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad  # v4.0.0
-
-      - name: Generate build matrix
-        id: set-matrix
-        run: |
-          set -euo pipefail
-          # Build the full image matrix once, then split into build_local=false
-          # (images + manifests) and build_local=true (test-only) subsets.
-          source scripts/common.sh
-          load_config_file
-
-          bases_tmpdir="$(download_bases_archive)"
-          # Full matrix includes both archs and a build_local flag for filtering.
-          full_images_file="$(mktemp)"
-          echo '{"include":[]}' > "${full_images_file}"
-
-          for dir in agents/*; do
-            [[ -d "${dir}" ]] || continue
-            agent="$(basename "${dir}")"
-            build_local="$(get_agent_field "${agent}" build_local)"
-            base_aliases="$(get_bases "${agent}" "${bases_tmpdir}/bases")"
-            for base_alias in ${base_aliases}; do
-              # Append both arch variants with build_local flag preserved.
-              jq -c \
-                --arg agent "${agent}" \
-                --arg base "${base_alias}" \
-                --argjson build_local "${build_local}" \
-                '
-                  .include += [
-                    {
-                      "agent": $agent,
-                      "base": $base,
-                      "arch": "amd64",
-                      "platform": "linux/amd64",
-                      "runner": "ubuntu-latest",
-                      "build_local": $build_local
-                    },
-                    {
-                      "agent": $agent,
-                      "base": $base,
-                      "arch": "arm64",
-                      "platform": "linux/arm64",
-                      "runner": "ubuntu-24.04-arm",
-                      "build_local": $build_local
-                    }
-                  ]
-                ' \
-                "${full_images_file}" > "${full_images_file}.tmp"
-              mv "${full_images_file}.tmp" "${full_images_file}"
-            done
-          done
-
-          # Split full matrix into: build_local=false images, build_local=false manifests,
-          # and build_local=true images for testing.
-          images_file="$(mktemp)"
-          nr_images_file="$(mktemp)"
-
-          jq -c \
-            '{include: ([.include[] | select(.build_local == false) | {agent, base}] | unique)}' \
-            "${full_images_file}" > "${images_file}"
-          jq -c \
-            '{include: [.include[] | select(.build_local == true) | del(.build_local)]}' \
-            "${full_images_file}" > "${nr_images_file}"
-
-          images_json="$(cat "${images_file}")"
-          nr_images_json="$(cat "${nr_images_file}")"
-          {
-            echo "MATRIX_IMAGES=${images_json}"
-            echo "MATRIX_NR_IMAGES=${nr_images_json}"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Print image matrix
-        env:
-          MATRIX_IMAGES: ${{ steps.set-matrix.outputs.MATRIX_IMAGES }}
-        run: |
-          set -euo pipefail
-          printf '%s\n' "${MATRIX_IMAGES}" | jq '.'
-
-      - name: Print non-redistributable matrix
-        env:
-          MATRIX_NR_IMAGES: ${{ steps.set-matrix.outputs.MATRIX_NR_IMAGES }}
-        run: |
-          set -euo pipefail
-          printf '%s\n' "${MATRIX_NR_IMAGES}" | jq '.'
+    uses: ./.github/workflows/prepare-matrix.yml
 
   test-non-redistributable:
     needs: [matrix, version-image-check]
     uses: ./.github/workflows/test-non-redistributable-agents.yml
     with:
-      matrix_images: ${{ needs.matrix.outputs.MATRIX_NR_IMAGES }}
+      matrix_images: ${{ needs.matrix.outputs.matrix_nr_images }}
 
   build-images:
     needs: [matrix, version-image-check, test-non-redistributable]
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.matrix.outputs.MATRIX_IMAGES) }}
+      matrix: ${{ fromJson(needs.matrix.outputs.matrix_images) }}
     uses: ./.github/workflows/build.yml
     with:
       agent: ${{ matrix.agent }}

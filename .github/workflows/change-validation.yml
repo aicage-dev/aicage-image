@@ -1,0 +1,22 @@
+name: Change Validation
+run-name: Change validation (${{ github.ref_name }})
+
+"on":
+  pull_request: {}
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+
+  version-image-check:
+    name: Check agents version.sh with util-image
+    uses: ./.github/workflows/version-image-check.yml
+
+  matrix:
+    name: Build matrix
+    needs: lint
+    uses: ./.github/workflows/prepare-matrix.yml
