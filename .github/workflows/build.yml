@@ -38,6 +38,10 @@ permissions:
   id-token: write
   actions: read
 
+env:
+  COSIGN_IDENTITY_REGEXP: >-
+    ^https://github.com/aicage/[^/]+/.github/workflows/.*@(?:refs/.*/.*|[0-9a-f]{40})$
+
 jobs:
 
   build:
@@ -144,9 +148,12 @@ jobs:
           } | tee /dev/stderr >> "$GITHUB_ENV"
 
       - name: Verify base image signature
-        uses: aicage/github-actions/.github/actions/cosign-verify@7afafec3f406803d09ea593b7806697f2a022808  # 0.2.8
-        with:
-          image: ${{ env.BASE_IMAGE_DIGEST_REF }}
+        run: |
+          set -euo pipefail
+          cosign verify \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --certificate-identity-regexp "${COSIGN_IDENTITY_REGEXP}" \
+            "${{ env.BASE_IMAGE_DIGEST_REF }}"
 
       - name: Build test image tag
         id: build_image
