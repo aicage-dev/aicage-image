@@ -78,15 +78,21 @@ jobs:
             local agent="$1"
             local base_alias="$2"
             local agent_version="$3"
-            local status output
+            local status
 
             set +e
-            output="$(needs_rebuild "${base_alias}" "${agent}-${agent_version}-${base_alias}-${AICAGE_VERSION}" 2>&1)"
+            NEEDS_REBUILD_OUTPUT="$(
+              needs_rebuild "${base_alias}" "${agent}-${agent_version}-${base_alias}-${AICAGE_VERSION}" 2>&1
+            )"
             status=$?
             set -e
 
-            NEEDS_REBUILD_OUTPUT="${output}"
             printf '%s\n' "${status}"
+          }
+
+          print_needs_rebuild_output() {
+            [[ -n "${NEEDS_REBUILD_OUTPUT}" ]] || return 0
+            printf '%s\n' "${NEEDS_REBUILD_OUTPUT}" | sed 's/^/  /'
           }
 
           report_pid_result() {
@@ -131,6 +137,10 @@ jobs:
             status="$(needs_rebuild_status "${agent}" "${base_alias}" "${agent_version}")"
             case "${status}" in
               0)
+                if [[ -n "${NEEDS_REBUILD_OUTPUT}" ]]; then
+                  echo "Rebuild reason for ${agent} (${base_alias}):"
+                  print_needs_rebuild_output
+                fi
                 echo "Needs build ${agent} (${base_alias}) for ${AICAGE_VERSION}"
                 append_build "${agent}" "${base_alias}"
                 return 0
@@ -141,7 +151,7 @@ jobs:
                 ;;
               *)
                 if [[ -n "${NEEDS_REBUILD_OUTPUT}" ]]; then
-                  echo "${NEEDS_REBUILD_OUTPUT}" >&2
+                  print_needs_rebuild_output >&2
                 fi
                 echo "Failed to determine rebuild for ${agent} (${base_alias})" >&2
                 return 1
