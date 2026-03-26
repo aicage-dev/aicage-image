@@ -87,7 +87,7 @@ jobs:
             status=$?
             set -e
 
-            printf '%s\n' "${status}"
+            return "${status}"
           }
 
           print_needs_rebuild_output() {
@@ -134,7 +134,11 @@ jobs:
             fi
 
             local status
-            status="$(needs_rebuild_status "${agent}" "${base_alias}" "${agent_version}")"
+            if needs_rebuild_status "${agent}" "${base_alias}" "${agent_version}"; then
+              status=0
+            else
+              status=$?
+            fi
             case "${status}" in
               0)
                 if [[ -n "${NEEDS_REBUILD_OUTPUT}" ]]; then
