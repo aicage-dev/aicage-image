@@ -65,6 +65,8 @@ jobs:
       ROOT_DIR: ${{ github.workspace }}
       AICAGE_VERSION: ${{ inputs.git_ref || github.ref_name }}
     outputs:
+      BASE_IMAGE_DIGEST: ${{ steps.base-image-digest.outputs.DIGEST }}
+      BASE_IMAGE_NAME: ${{ steps.config.outputs.BASE_IMAGE }}
       CREATED: ${{ steps.oci.outputs.created }}
       INDEX_DIGEST_amd64: ${{ steps.out-amd64.outputs.INDEX_DIGEST }}
       INDEX_DIGEST_arm64: ${{ steps.out-arm64.outputs.INDEX_DIGEST }}
@@ -155,6 +157,10 @@ jobs:
             exit 1
           fi
           {
+            echo "DIGEST=${digest}"
+            echo "BASE_IMAGE_DIGEST_REF=${BASE_IMAGE}@${digest}"
+          } | tee /dev/stderr >> "$GITHUB_OUTPUT"
+          {
             echo "BASE_IMAGE_DIGEST_REF=${BASE_IMAGE}@${digest}"
           } | tee /dev/stderr >> "$GITHUB_ENV"
 
@@ -193,11 +199,22 @@ jobs:
             org.opencontainers.image.revision=${{ steps.oci.outputs.revision }}
             org.opencontainers.image.created=${{ steps.oci.outputs.created }}
             org.opencontainers.image.version=${{ steps.config.outputs.VERSION_TAG }}
+            org.opencontainers.image.base.name=${{ steps.config.outputs.BASE_IMAGE }}
+            org.opencontainers.image.base.digest=${{ steps.base-image-digest.outputs.DIGEST }}
 
       - name: "Test: Pull final image for local tests"
         run: |
           set -euo pipefail
           docker pull "${IMAGE_REF}@${{ steps.build_image.outputs.digest }}"
+
+      - name: "Test: Verify base provenance labels on final image"
+        run: |
+          set -euo pipefail
+          docker image inspect "${IMAGE_REF}@${{ steps.build_image.outputs.digest }}" \
+            | jq -e '
+              .[0].Config.Labels["org.opencontainers.image.base.name"] == "${{ steps.config.outputs.BASE_IMAGE }}"
+              and .[0].Config.Labels["org.opencontainers.image.base.digest"] == "${{ steps.base-image-digest.outputs.DIGEST }}"
+            ' >/dev/null
 
       - name: "Test: Setup BATS testing framework"
         uses: mig4/setup-bats@af9a00deb21b5d795cabfeaa8d9060410377686d  # v1.2.0
@@ -240,6 +257,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Use multi-arch publish action
+        id: publish
         uses: gh-workflow/multiarch-image-publish@0.1.6
         with:
           image_ref: ${{ needs.build.outputs.IMAGE_REF }}
@@ -257,3 +275,15 @@ jobs:
             org.opencontainers.image.revision=${{ needs.build.outputs.REVISION }}
             org.opencontainers.image.created=${{ needs.build.outputs.CREATED }}
             org.opencontainers.image.version=${{ needs.build.outputs.VERSION_TAG }}
+            org.opencontainers.image.base.name=${{ needs.build.outputs.BASE_IMAGE_NAME }}
+            org.opencontainers.image.base.digest=${{ needs.build.outputs.BASE_IMAGE_DIGEST }}
+
+      - name: Verify base provenance annotations on published manifest
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect \
+            --raw "${{ needs.build.outputs.IMAGE_REF }}@${{ steps.publish.outputs.manifest_digest }}" \
+            | jq -e '
+              .annotations["org.opencontainers.image.base.name"] == "${{ needs.build.outputs.BASE_IMAGE_NAME }}"
+              and .annotations["org.opencontainers.image.base.digest"] == "${{ needs.build.outputs.BASE_IMAGE_DIGEST }}"
+            ' >/dev/null
