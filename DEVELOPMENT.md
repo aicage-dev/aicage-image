@@ -25,7 +25,7 @@ pip install -r requirements-dev.txt
 - `agents/<agent>/install.sh` — Installer for each agent.
 - `agents/<agent>/agent.yml` — Key/value metadata labels baked into the image.
 - `scripts/` — Build and test helpers.
-- `tests/smoke/` — Bats suites that verify each agent’s image.
+- `tests/agents/smoke/` — Bats suites that verify each agent’s image.
 - `config.yml` — Default repositories, platforms, and version tags.
 
 ## Configuration
@@ -60,7 +60,7 @@ scripts/test.sh --image ghcr.io/aicage/aicage:codex-ubuntu --agent codex
 scripts/test-all.sh
 ```
 
-Smoke suites live in `tests/smoke/`; use `bats` directly if you need to run one file.
+Smoke suites live in `tests/agents/smoke/`; use `bats` directly if you need to run one file.
 
 ## Adding an agent
 
@@ -68,7 +68,7 @@ Smoke suites live in `tests/smoke/`; use `bats` directly if you need to run one 
 2. Add `agents/<agent>/agent.yml` with any metadata that should appear as image labels.
    Optional filters: `base_exclude` and `base_distro_exclude` (lists).
 3. Add the agent to `AICAGE_AGENTS` in `config.yml` if it isn’t discovered automatically.
-4. Add smoke coverage in `tests/smoke/<agent>.bats`.
+4. Add smoke coverage in `tests/agents/smoke/<agent>.bats`.
 5. Document the agent in `README.md` if it should be visible to users.
 
 ## Working with bases

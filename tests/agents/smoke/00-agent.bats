@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
-  ROOT_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
+  ROOT_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
   if [[ -z "${AGENT:-}" ]]; then
     echo "AGENT must be provided to the test suite" >&2
     exit 1

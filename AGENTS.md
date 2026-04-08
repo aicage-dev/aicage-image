@@ -19,7 +19,7 @@ doc plus `DEVELOPMENT.md` for build/test workflow details.
 ## Adding or updating agents
 
 - New agent steps live in `DEVELOPMENT.md` (installer + smoke tests). Keep smoke coverage in
-  `tests/smoke/<agent>.bats`.
+  `tests/agents/smoke/<agent>.bats`.
 - Coordinate base changes with `aicage-image-base`; this repo consumes published `<base>`
   tags.
 
