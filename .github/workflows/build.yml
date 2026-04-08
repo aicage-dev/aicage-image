@@ -39,8 +39,8 @@ permissions:
   actions: read
 
 env:
-  COSIGN_IDENTITY_REGEXP: >-
-    ^https://github.com/aicage/[^/]+/.github/workflows/.*@(?:refs/.*/.*|[0-9a-f]{40})$
+  BASE_IMAGE_COSIGN_IDENTITY_REGEXP: >-
+    ^https://github.com/aicage/aicage-image-base/.github/workflows/.*@(?:refs/.*/.*|[0-9a-f]{40})$
 
 jobs:
 
@@ -163,8 +163,18 @@ jobs:
           set -euo pipefail
           cosign verify \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            --certificate-identity-regexp "${COSIGN_IDENTITY_REGEXP}" \
+            --certificate-identity-regexp "${BASE_IMAGE_COSIGN_IDENTITY_REGEXP}" \
             "${{ env.BASE_IMAGE_DIGEST_REF }}"
+
+      - name: Verify base image manifest annotations
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect \
+            --raw "${{ env.BASE_IMAGE_DIGEST_REF }}" \
+            | jq -e '
+              .annotations["org.opencontainers.image.source"] == "https://github.com/aicage/aicage-image-base"
+              and .annotations["org.opencontainers.image.title"] == "aicage-image-base"
+            ' >/dev/null
 
       - name: Build test image tag
         id: build_image
