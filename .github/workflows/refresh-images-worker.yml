@@ -12,10 +12,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  freshness-check:
+    name: Check release freshness
+    runs-on: ubuntu-latest
+    outputs:
+      SHOULD_REFRESH: ${{ steps.check.outputs.SHOULD_REFRESH }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Check latest release tag
+        id: check
+        run: |
+          set -euo pipefail
+          release_tag="$(scripts/latest-release-tag.sh)"
+          if [[ "${release_tag}" != "${GITHUB_REF_NAME}" ]]; then
+            echo "Skipping stale refresh for ${GITHUB_REF_NAME}; latest release is ${release_tag}."
+            echo "SHOULD_REFRESH=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Refreshing latest release ${release_tag}."
+          echo "SHOULD_REFRESH=true" >> "$GITHUB_OUTPUT"
 
   refresh:
     name: Refresh agent/base images for ${{ github.ref_name }}
     runs-on: ubuntu-latest
+    needs: freshness-check
+    if: ${{ needs.freshness-check.outputs.SHOULD_REFRESH == 'true' }}
     outputs:
       MATRIX_IMAGES: ${{ steps.matrix.outputs.MATRIX_IMAGES }}
       BUILD_COUNT: ${{ steps.matrix.outputs.BUILD_COUNT }}
@@ -236,8 +259,9 @@ jobs:
   build-images:
     name: Build needed images
     needs:
+      - freshness-check
       - refresh
-    if: ${{ needs.refresh.outputs.BUILD_COUNT != '0' }}
+    if: ${{ needs.freshness-check.outputs.SHOULD_REFRESH == 'true' && needs.refresh.outputs.BUILD_COUNT != '0' }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.refresh.outputs.MATRIX_IMAGES) }}

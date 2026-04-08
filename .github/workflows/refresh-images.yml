@@ -18,25 +18,14 @@ jobs:
 
     steps:
 
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
       - name: Get latest release tag
         id: latest
         run: |
           set -euo pipefail
-          AICAGE_VERSION="$(
-            curl \
-              -fsSL \
-              --retry 8 \
-              --retry-all-errors \
-              --retry-delay 2 \
-              --max-time 300 \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" \
-            | jq -r '.tag_name' \
-          )"
-          if [[ -z "${AICAGE_VERSION}" ]]; then
-            echo "Latest release tag is empty" >&2
-            exit 1
-          fi
+          AICAGE_VERSION="$(scripts/latest-release-tag.sh)"
           {
             echo "AICAGE_VERSION=${AICAGE_VERSION}"
           } >> "$GITHUB_OUTPUT"
