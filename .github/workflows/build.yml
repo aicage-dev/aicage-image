@@ -175,10 +175,12 @@ jobs:
       - name: Verify base image manifest annotations
         run: |
           set -euo pipefail
+          expected_source="https://github.com/aicage/aicage-image-base"
           docker buildx imagetools inspect \
             --raw "${{ env.BASE_IMAGE_DIGEST_REF }}" \
-            | jq -e '
-              .annotations["org.opencontainers.image.source"] == "https://github.com/aicage/aicage-image-base"
+            | jq -e \
+              --arg expected_source "$expected_source" '
+              .annotations["org.opencontainers.image.source"] == $expected_source
               and .annotations["org.opencontainers.image.title"] == "aicage-image-base"
             ' >/dev/null
 
@@ -207,13 +209,37 @@ jobs:
           set -euo pipefail
           docker pull "${IMAGE_REF}@${{ steps.build_image.outputs.digest }}"
 
+      - name: "Test: Verify OCI labels on final image"
+        run: |
+          set -euo pipefail
+          expected_description="Agent image for ${{ env.AGENT }}"
+          expected_revision="${{ steps.oci.outputs.revision }}"
+          expected_created="${{ steps.oci.outputs.created }}"
+          expected_version="${{ steps.config.outputs.VERSION_TAG }}"
+          docker image inspect "${IMAGE_REF}@${{ steps.build_image.outputs.digest }}" \
+            | jq -e \
+              --arg expected_description "$expected_description" \
+              --arg expected_revision "$expected_revision" \
+              --arg expected_created "$expected_created" \
+              --arg expected_version "$expected_version" '
+              .[0].Config.Labels["org.opencontainers.image.description"]
+                == $expected_description
+              and .[0].Config.Labels["org.opencontainers.image.revision"] == $expected_revision
+              and .[0].Config.Labels["org.opencontainers.image.created"] == $expected_created
+              and .[0].Config.Labels["org.opencontainers.image.version"] == $expected_version
+            ' >/dev/null
+
       - name: "Test: Verify base provenance labels on final image"
         run: |
           set -euo pipefail
+          expected_base_name="${{ steps.config.outputs.BASE_IMAGE }}"
+          expected_base_digest="${{ steps.base-image-digest.outputs.DIGEST }}"
           docker image inspect "${IMAGE_REF}@${{ steps.build_image.outputs.digest }}" \
-            | jq -e '
-              .[0].Config.Labels["org.opencontainers.image.base.name"] == "${{ steps.config.outputs.BASE_IMAGE }}"
-              and .[0].Config.Labels["org.opencontainers.image.base.digest"] == "${{ steps.base-image-digest.outputs.DIGEST }}"
+            | jq -e \
+              --arg expected_base_name "$expected_base_name" \
+              --arg expected_base_digest "$expected_base_digest" '
+              .[0].Config.Labels["org.opencontainers.image.base.name"] == $expected_base_name
+              and .[0].Config.Labels["org.opencontainers.image.base.digest"] == $expected_base_digest
             ' >/dev/null
 
       - name: "Test: Setup BATS testing framework"
@@ -281,9 +307,28 @@ jobs:
       - name: Verify base provenance annotations on published manifest
         run: |
           set -euo pipefail
+          expected_base_name="${{ needs.build.outputs.BASE_IMAGE_NAME }}"
+          expected_base_digest="${{ needs.build.outputs.BASE_IMAGE_DIGEST }}"
+          expected_description="Agent image for ${{ inputs.agent }}"
+          expected_revision="${{ needs.build.outputs.REVISION }}"
+          expected_created="${{ needs.build.outputs.CREATED }}"
+          expected_version="${{ needs.build.outputs.VERSION_TAG }}"
           docker buildx imagetools inspect \
             --raw "${{ needs.build.outputs.IMAGE_REF }}@${{ steps.publish.outputs.manifest_digest }}" \
-            | jq -e '
-              .annotations["org.opencontainers.image.base.name"] == "${{ needs.build.outputs.BASE_IMAGE_NAME }}"
-              and .annotations["org.opencontainers.image.base.digest"] == "${{ needs.build.outputs.BASE_IMAGE_DIGEST }}"
+            | jq -e \
+              --arg expected_base_name "$expected_base_name" \
+              --arg expected_base_digest "$expected_base_digest" \
+              --arg expected_description "$expected_description" \
+              --arg expected_revision "$expected_revision" \
+              --arg expected_created "$expected_created" \
+              --arg expected_version "$expected_version" '
+              .annotations["org.opencontainers.image.title"] == "aicage"
+              and .annotations["org.opencontainers.image.description"] == $expected_description
+              and .annotations["org.opencontainers.image.source"] == "https://github.com/aicage/aicage-image"
+              and .annotations["org.opencontainers.image.licenses"] == "Apache-2.0"
+              and .annotations["org.opencontainers.image.revision"] == $expected_revision
+              and .annotations["org.opencontainers.image.created"] == $expected_created
+              and .annotations["org.opencontainers.image.version"] == $expected_version
+              and .annotations["org.opencontainers.image.base.name"] == $expected_base_name
+              and .annotations["org.opencontainers.image.base.digest"] == $expected_base_digest
             ' >/dev/null
