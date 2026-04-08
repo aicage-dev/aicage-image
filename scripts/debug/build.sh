@@ -24,7 +24,7 @@ USAGE
   exit 1
 }
 
-# shellcheck source=../scripts/common.sh
+# shellcheck source=./scripts/common.sh
 source "${ROOT_DIR}/scripts/common.sh"
 
 AGENT=""

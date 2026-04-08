@@ -173,5 +173,5 @@ get_bases() {
     fi
 
     printf '%s\n' "${alias}"
-  done < <(printf '%s\n' ${base_aliases})
+  done <<< "${base_aliases}"
 }

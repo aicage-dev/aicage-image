@@ -9,8 +9,7 @@ adjust Dockerfiles, or update smoke tests.
 - QEMU/binfmt for multi-arch builds (often installed with Docker Desktop).
 - Bats (`bats --version`) for smoke suites.
 - yq (`yq --version`) for parsing config and agent metadata.
-- Python 3.11+ with `pip install -r requirements-dev.txt` to pull lint/test tooling (e.g., ruff,
-  pymarkdown).
+- Python 3.11+ with `pip install -r requirements-dev.txt` to pull lint/test tooling.
 
 ## Setup
 

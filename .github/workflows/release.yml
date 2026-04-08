@@ -63,6 +63,8 @@ jobs:
           tar -czf dist/"${REPO_NAME}".tar.gz \
             agents \
             Dockerfile
+          tar -czf dist/"${REPO_NAME}"-smoke-tests.tar.gz \
+            tests/agents/smoke
 
       - name: "Release: Create SHA256SUMS"
         run: |
