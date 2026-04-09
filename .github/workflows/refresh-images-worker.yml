@@ -23,6 +23,8 @@ jobs:
 
       - name: Check latest release tag
         id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           release_tag="$(scripts/latest-release-tag.sh)"
@@ -44,6 +46,7 @@ jobs:
       BUILD_COUNT: ${{ steps.matrix.outputs.BUILD_COUNT }}
     env:
       AICAGE_VERSION: ${{ github.ref_name }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       ROOT_DIR: ${{ github.workspace }}
     steps:
 
