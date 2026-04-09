@@ -23,6 +23,8 @@ jobs:
 
       - name: Get latest release tag
         id: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           AICAGE_VERSION="$(scripts/latest-release-tag.sh)"

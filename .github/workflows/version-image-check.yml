@@ -19,4 +19,5 @@ jobs:
       - name: Run version image check
         env:
           DOCKER_DEFAULT_PLATFORM: ${{ matrix.platform }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./scripts/version-image-check.sh

@@ -81,25 +81,6 @@ download_bases_archive() {
   printf '%s\n' "${tmpdir}"
 }
 
-get_base_release_tag() {
-  local base_repo="${AICAGE_IMAGE_BASE_REPOSITORY}"
-  local latest_url="https://github.com/${base_repo}/releases/latest"
-  local location
-
-  location="$(
-    curl_wrapper -I "${latest_url}" \
-      | sed -n 's/^location:[[:space:]]*//Ip' \
-      | tr -d '\r' \
-      | tail -n 1
-  )" || _die "Failed to resolve ${latest_url}"
-
-  if [[ -z "${location}" ]]; then
-    _die "Missing redirect for ${latest_url}"
-  fi
-
-  printf '%s\n' "${location##*/}"
-}
-
 list_base_aliases() {
   local bases_dir="$1"
 

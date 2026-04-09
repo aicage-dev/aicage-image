@@ -9,9 +9,15 @@ get_image_version() {
   local version_script="$1"
   local script_name
   local script_path
+  local docker_args=(--rm)
   script_name="$(basename "${version_script}")"
   script_path="$(cd "$(dirname "${version_script}")" && pwd)/${script_name}"
-  docker run --rm \
+
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    docker_args+=(-e "GITHUB_TOKEN=${GITHUB_TOKEN}")
+  fi
+
+  docker run "${docker_args[@]}" \
     -v "${script_path}:/tmp/${script_name}:ro" \
     "${VERSION_CHECK_IMAGE}" \
       "/tmp/${script_name}" \

@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+curl_args=(
+  -fsSL
+  --retry 8
+  --retry-all-errors
+  --retry-delay 2
+  --max-time 300
+  -H "Accept: application/vnd.github+json"
+)
+
+if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+  curl_args+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+fi
+
 release_tag="$(
   curl \
-    -fsSL \
-    --retry 8 \
-    --retry-all-errors \
-    --retry-delay 2 \
-    --max-time 300 \
-    -H "Accept: application/vnd.github+json" \
+    "${curl_args[@]}" \
     "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" \
   | jq -r '.tag_name'
 )"
