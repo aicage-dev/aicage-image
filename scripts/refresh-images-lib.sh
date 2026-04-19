@@ -49,9 +49,10 @@ run_cmd() {
     cat "${out_file}"
     rm -f "${out_file}" "${err_file}"
     return 0
+  else
+    status=$?
   fi
 
-  status=$?
   echo "Command failed (${label}) [exit ${status}]" >&2
   echo "  $*" >&2
   if [[ -s "${err_file}" ]]; then
