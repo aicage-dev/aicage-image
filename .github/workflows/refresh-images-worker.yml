@@ -80,6 +80,7 @@ jobs:
           LOG_DIR="$(mktemp -d)"
           BUILD_LIST="$(mktemp)"
           BUILD_LIST_LOCK="$(mktemp)"
+          BASE_METADATA_FILE="$(mktemp)"
           error_count=0
           pids=()
           declare -A pid_to_log pid_to_label
@@ -108,7 +109,10 @@ jobs:
 
             set +e
             NEEDS_REBUILD_OUTPUT="$(
-              needs_rebuild "${base_alias}" "${agent}-${agent_version}-${base_alias}-${AICAGE_VERSION}" 2>&1
+              needs_rebuild \
+                "${base_alias}" \
+                "${agent}-${agent_version}-${base_alias}-${AICAGE_VERSION}" \
+                "${BASE_METADATA_FILE}" 2>&1
             )"
             status=$?
             set -e
@@ -188,6 +192,11 @@ jobs:
                 ;;
             esac
           }
+
+          if ! load_base_metadata_file "${BASE_METADATA_FILE}" "${BASES_TMPDIR}/bases"; then
+            echo "Failed to load base metadata." >&2
+            exit 1
+          fi
 
           for dir in agents/*; do
             [ -d "${dir}" ] || continue
