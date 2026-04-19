@@ -10,12 +10,23 @@ image="$1"
 out_file="$(mktemp)"
 err_file="$(mktemp)"
 trap 'rm -f "${out_file}" "${err_file}"' EXIT
+command_timeout="${SKOPEO_COMMAND_TIMEOUT:-60s}"
+retry_times="${SKOPEO_RETRY_TIMES:-3}"
 
-if skopeo inspect "docker://${image}" >"${out_file}" 2>"${err_file}"; then
+set +e
+skopeo \
+  --command-timeout "${command_timeout}" \
+  inspect \
+  --retry-times "${retry_times}" \
+  --no-tags \
+  "docker://${image}" >"${out_file}" 2>"${err_file}"
+status=$?
+set -e
+
+if [[ "${status}" -eq 0 ]]; then
   exit 0
 fi
 
-status=$?
 output="$(cat "${err_file}")"
 normalized_output="$(printf '%s' "${output}" | tr '[:upper:]' '[:lower:]')"
 
@@ -29,7 +40,7 @@ if [[ "${normalized_output}" == *"manifest unknown"* ]] \
 fi
 
 echo "Command failed (skopeo inspect ${image}) [exit ${status}]" >&2
-echo "  skopeo inspect docker://${image}" >&2
+echo "  skopeo --command-timeout ${command_timeout} inspect --retry-times ${retry_times} --no-tags docker://${image}" >&2
 if [[ -n "${output}" ]]; then
   sed 's/^/  /' "${err_file}" >&2
 fi
