@@ -7,8 +7,7 @@ get_manifest_digest() {
   local manifest
   local digest
 
-  if ! manifest="$(run_cmd "skopeo inspect --raw ${image}" \
-    skopeo inspect --raw "docker://${image}")"; then
+  if ! manifest="$(skopeo_inspect --raw "docker://${image}")"; then
     return 1
   fi
 
@@ -27,8 +26,7 @@ get_last_layer() {
   local manifest
   local layer
 
-  if ! manifest="$(run_cmd "skopeo inspect ${image_repo}@${digest}" \
-    skopeo inspect "docker://${image_repo}@${digest}")"; then
+  if ! manifest="$(skopeo_inspect "docker://${image_repo}@${digest}")"; then
     return 1
   fi
 
@@ -63,6 +61,11 @@ run_cmd() {
   return "${status}"
 }
 
+skopeo_inspect() {
+  run_cmd "skopeo inspect $*" \
+    skopeo --command-timeout 60s inspect --retry-times 3 "$@"
+}
+
 needs_rebuild() {
   local base_image_tag="$1"
   local final_image_tag="$2"
@@ -74,12 +77,7 @@ needs_rebuild() {
   echo "[needs-rebuild]: base_image=${base_image}" >&2
   echo "[needs-rebuild]: final_image=${final_image}" >&2
 
-  if ! skopeo \
-    --command-timeout 60s \
-    inspect \
-    --retry-times 3 \
-    "docker://${final_image}" >/dev/null 2>&1; then
-    echo "Failed to inspect ${final_image}" >&2
+  if ! skopeo_inspect "docker://${final_image}" >/dev/null; then
     echo "${final_image} is missing"
     return 0
   fi
@@ -116,8 +114,7 @@ needs_rebuild() {
     fi
 
     local final_layers
-    if ! final_layers="$(run_cmd "skopeo inspect ${final_repo}@${final_digest}" \
-      skopeo inspect "docker://${final_repo}@${final_digest}")"; then
+    if ! final_layers="$(skopeo_inspect "docker://${final_repo}@${final_digest}")"; then
       return 2
     fi
     if ! final_layers="$(run_cmd "jq layers ${final_repo}@${final_digest}" \
