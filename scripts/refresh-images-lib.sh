@@ -63,26 +63,6 @@ run_cmd() {
   return "${status}"
 }
 
-check_final_image_presence() {
-  local final_image="$1"
-  local presence_status
-
-  if "${ROOT_DIR}/scripts/image-presence-check.sh" "${final_image}"; then
-    return 1
-  fi
-  presence_status=$?
-
-  case "${presence_status}" in
-    10)
-      return 0
-      ;;
-    *)
-      echo "Failed to inspect ${final_image}" >&2
-      return 2
-      ;;
-  esac
-}
-
 needs_rebuild() {
   local base_image_tag="$1"
   local final_image_tag="$2"
@@ -94,17 +74,16 @@ needs_rebuild() {
   echo "[needs-rebuild]: base_image=${base_image}" >&2
   echo "[needs-rebuild]: final_image=${final_image}" >&2
 
-  if check_final_image_presence "${final_image}"; then
+  if ! skopeo \
+    --command-timeout 60s \
+    inspect \
+    --retry-times 3 \
+    --no-tags \
+    "docker://${final_image}" >/dev/null 2>&1; then
+    echo "Failed to inspect ${final_image}" >&2
     echo "${final_image} is missing"
     return 0
   fi
-  case "$?" in
-    1)
-      ;;
-    *)
-      return 2
-      ;;
-  esac
 
   for arch in amd64 arm64; do
     local base_digest
