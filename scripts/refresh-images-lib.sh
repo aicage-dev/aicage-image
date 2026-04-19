@@ -78,7 +78,6 @@ needs_rebuild() {
     --command-timeout 60s \
     inspect \
     --retry-times 3 \
-    --no-tags \
     "docker://${final_image}" >/dev/null 2>&1; then
     echo "Failed to inspect ${final_image}" >&2
     echo "${final_image} is missing"
