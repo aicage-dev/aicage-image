@@ -26,7 +26,7 @@ get_last_layer() {
   local manifest
   local layer
 
-  if ! manifest="$(skopeo_inspect "docker://${image_repo}@${digest}")"; then
+  if ! manifest="$(skopeo_inspect --no-tags "docker://${image_repo}@${digest}")"; then
     return 1
   fi
 
@@ -184,7 +184,7 @@ needs_rebuild() {
     fi
 
     local final_layers
-    if ! final_layers="$(skopeo_inspect "docker://${final_repo}@${final_digest}")"; then
+    if ! final_layers="$(skopeo_inspect --no-tags "docker://${final_repo}@${final_digest}")"; then
       return 2
     fi
     if ! final_layers="$(run_cmd "jq layers ${final_repo}@${final_digest}" \
