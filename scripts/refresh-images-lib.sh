@@ -147,7 +147,7 @@ needs_rebuild() {
   echo "[needs-rebuild]: base_image=${base_image}" >&2
   echo "[needs-rebuild]: final_image=${final_image}" >&2
 
-  if ! skopeo_inspect "docker://${final_image}" >/dev/null; then
+  if ! skopeo_inspect --no-tags "docker://${final_image}" >/dev/null; then
     echo "${final_image} is missing"
     return 0
   fi
