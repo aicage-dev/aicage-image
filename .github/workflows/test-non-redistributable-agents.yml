@@ -8,6 +8,10 @@ run-name: Test non-redistributable agents (${{ github.ref_name }})
         description: JSON image matrix with include entries ({agent, base, arch, platform, runner})
         required: true
         type: string
+      git_ref:
+        description: Git ref to check out (tag/branch/SHA). Defaults to the workflow ref.
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       matrix_images:
@@ -18,6 +22,11 @@ run-name: Test non-redistributable agents (${{ github.ref_name }})
           "platform":"linux/amd64","runner":"ubuntu-latest"},{"agent":"bar",
           "base":"foo","arch":"arm64","platform":"linux/arm64",
           "runner":"ubuntu-24.04-arm"}]}
+        type: string
+      git_ref:
+        description: Git ref to check out (tag/branch/SHA). Defaults to the workflow ref.
+        required: false
+        default: ""
         type: string
 
 concurrency:
@@ -41,6 +50,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          ref: ${{ inputs.git_ref || github.ref }}
 
       - name: Set base image and tag
         id: config

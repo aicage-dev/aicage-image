@@ -30,6 +30,7 @@ jobs:
     uses: ./.github/workflows/test-non-redistributable-agents.yml
     with:
       matrix_images: ${{ needs.matrix.outputs.matrix_nr_images }}
+      git_ref: ${{ github.ref_name }}
 
   build-images:
     needs: [matrix, version-image-check, test-non-redistributable]
