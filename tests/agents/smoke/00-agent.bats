@@ -34,6 +34,16 @@ setup() {
   [[ "$output" == *"${AGENT}"* ]]
 }
 
+@test "test_agent_version" {
+  run docker run --rm \
+    --env AICAGE_ENTRYPOINT_CMD=/bin/bash \
+    --env AICAGE_WORKSPACE=/workspace \
+    "${AICAGE_IMAGE}" \
+    -c "${AGENT} --version"
+  [ "$status" -eq 0 ]
+  [ -n "$output" ]
+}
+
 @test "test_required_packages" {
   run docker run --rm \
     --env AICAGE_ENTRYPOINT_CMD=/bin/bash \
