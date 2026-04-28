@@ -126,27 +126,45 @@ wait_for_slot() {
   fi
 }
 
-main() {
+launch_check() {
+  local agent="$1"
+  local base_alias="$2"
+  local agent_version="$3"
+  local log_file
+  local optional_args
+  local pid
+
+  log_file="${LOG_DIR}/$(log_name "${agent}_${base_alias}").log"
+
+  # Keep the worker invocation explicit; only --force-build is optional.
+  optional_args=""
+  if (( FORCE_BUILD )); then
+    optional_args="--force-build"
+  fi
+
+  "${ROOT_DIR}/scripts/refresh-images/check.sh" \
+    --aicage-version "${AICAGE_VERSION}" \
+    --agent "${agent}" \
+    --base-alias "${base_alias}" \
+    --agent-version "${agent_version}" \
+    --build-list "${BUILD_LIST}" \
+    --build-list-lock "${BUILD_LIST_LOCK}" \
+    --base-metadata-file "${BASE_METADATA_FILE}" \
+    ${optional_args} >"${log_file}" 2>&1 &
+  pid="$!"
+  pids+=("${pid}")
+  pid_to_log["${pid}"]="${log_file}"
+  pid_to_label["${pid}"]="${agent} (${base_alias})"
+
+  wait_for_slot
+}
+
+enqueue_agent_checks() {
   local agent
   local agent_version
   local base_aliases
   local base_alias
   local dir
-  local log_file
-  local optional_args
-  local pid
-  local build_count
-  local build_matrix_file
-  local build_matrix_json
-
-  [[ -n "${AICAGE_VERSION}" ]] || _die "AICAGE_VERSION argument required"
-
-  load_config_file
-
-  if ! load_base_metadata_file "${BASE_METADATA_FILE}" "${BASES_TMPDIR}/bases"; then
-    echo "Failed to load base metadata." >&2
-    exit 1
-  fi
 
   for dir in agents/*; do
     [[ -d "${dir}" ]] || continue
@@ -164,29 +182,13 @@ main() {
 
     base_aliases="$(get_bases "${agent}" "${BASES_TMPDIR}/bases")"
     for base_alias in ${base_aliases}; do
-      log_file="${LOG_DIR}/$(log_name "${agent}_${base_alias}").log"
-      # Keep the worker invocation explicit; only --force-build is optional.
-      optional_args=""
-      if (( FORCE_BUILD )); then
-        optional_args="--force-build"
-      fi
-      "${ROOT_DIR}/scripts/refresh-images/check.sh" \
-        --aicage-version "${AICAGE_VERSION}" \
-        --agent "${agent}" \
-        --base-alias "${base_alias}" \
-        --agent-version "${agent_version}" \
-        --build-list "${BUILD_LIST}" \
-        --build-list-lock "${BUILD_LIST_LOCK}" \
-        --base-metadata-file "${BASE_METADATA_FILE}" \
-        ${optional_args} >"${log_file}" 2>&1 &
-      pid="$!"
-      pids+=("${pid}")
-      pid_to_log["${pid}"]="${log_file}"
-      pid_to_label["${pid}"]="${agent} (${base_alias})"
-
-      wait_for_slot
+      launch_check "${agent}" "${base_alias}" "${agent_version}"
     done
   done
+}
+
+wait_for_checks() {
+  local pid
 
   for pid in "${pids[@]}"; do
     if wait "${pid}"; then
@@ -195,11 +197,14 @@ main() {
       report_pid_result "${pid}" $?
     fi
   done
+}
 
-  if [[ "${error_count}" -gt 0 ]]; then
-    echo "Refresh checks reported ${error_count} error(s)." >&2
-    exit 1
-  fi
+build_matrix_json() {
+  local build_matrix_file
+  local build_count
+  local build_matrix_json
+  local agent
+  local base_alias
 
   build_matrix_file="$(mktemp)"
   echo '{"include":[]}' > "${build_matrix_file}"
@@ -225,11 +230,31 @@ main() {
   if [[ "${build_count}" -eq 0 ]]; then
     echo "No image rebuilds required." >&2
   fi
-
   build_matrix_json="$(cat "${build_matrix_file}")"
   echo "Build matrix:" >&2
   jq '.' "${build_matrix_file}" >&2
   printf '%s\n' "${build_matrix_json}"
+}
+
+main() {
+  [[ -n "${AICAGE_VERSION}" ]] || _die "AICAGE_VERSION argument required"
+
+  load_config_file
+
+  if ! load_base_metadata_file "${BASE_METADATA_FILE}" "${BASES_TMPDIR}/bases"; then
+    echo "Failed to load base metadata." >&2
+    exit 1
+  fi
+
+  enqueue_agent_checks
+  wait_for_checks
+
+  if [[ "${error_count}" -gt 0 ]]; then
+    echo "Refresh checks reported ${error_count} error(s)." >&2
+    exit 1
+  fi
+
+  build_matrix_json
 }
 
 # Parse the small public CLI, then hand off to main with state in named variables.
