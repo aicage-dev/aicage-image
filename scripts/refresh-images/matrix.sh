@@ -171,7 +171,7 @@ enqueue_agent_checks() {
     [[ -d "${dir}" ]] || continue
     agent="$(basename "${dir}")"
     if is_agent_field_true "${agent}" build_local; then
-      echo "Skipping non-redistributable agent ${agent}"
+      echo "Skipping non-redistributable agent ${agent}" >&2
       continue
     fi
 
