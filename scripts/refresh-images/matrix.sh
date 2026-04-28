@@ -20,6 +20,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="${ROOT_DIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
 
 source "${ROOT_DIR}/scripts/common.sh"
+load_config_file
 source "${ROOT_DIR}/scripts/refresh-images/lib.sh"
 
 AICAGE_VERSION=""
@@ -239,8 +240,6 @@ build_matrix_json() {
 
 main() {
   [[ -n "${AICAGE_VERSION}" ]] || _die "AICAGE_VERSION argument required"
-
-  load_config_file
 
   if ! load_base_metadata_file "${BASE_METADATA_FILE}" "${BASES_TMPDIR}/bases"; then
     echo "Failed to load base metadata." >&2
