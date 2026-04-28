@@ -14,6 +14,7 @@ if [[ -n "${GITHUB_TOKEN:-}" ]]; then
   curl_args+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
 fi
 
+echo "Fetching latest release tag from https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" >&2
 release_tag="$(
   curl \
     "${curl_args[@]}" \

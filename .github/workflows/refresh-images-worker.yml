@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  freshness-check:
+  freshness:
     name: Check release freshness
     runs-on: ubuntu-latest
     outputs:
@@ -28,74 +28,76 @@ jobs:
         run: |
           set -euo pipefail
           release_tag="$(scripts/latest-release-tag.sh)"
-          if [[ "${release_tag}" != "${GITHUB_REF_NAME}" ]]; then
+          if [[ "${release_tag}" == "${GITHUB_REF_NAME}" ]]; then
+            echo "Refreshing latest release ${release_tag}."
+            echo "SHOULD_REFRESH=true" >> "$GITHUB_OUTPUT"
+          else
             echo "Skipping stale refresh for ${GITHUB_REF_NAME}; latest release is ${release_tag}."
             echo "SHOULD_REFRESH=false" >> "$GITHUB_OUTPUT"
-            exit 0
           fi
-          echo "Refreshing latest release ${release_tag}."
-          echo "SHOULD_REFRESH=true" >> "$GITHUB_OUTPUT"
 
-  refresh:
-    name: Refresh agent/base images for ${{ github.ref_name }}
+  matrix:
+    name: Prepare rebuild matrix for ${{ github.ref_name }}
+    needs: freshness
+    if: ${{ needs.freshness.outputs.SHOULD_REFRESH == 'true' }}
+    uses: ./.github/workflows/refresh-images-worker-matrix.yml
+    with:
+      aicage_version: ${{ github.ref_name }}
+    secrets: inherit
+
+  matrix-retry:
+    name: Retry rebuild matrix for ${{ github.ref_name }}
+    needs:
+      - freshness
+      - matrix
+    if: ${{ always() && needs.matrix.result == 'failure' }}
+    uses: ./.github/workflows/refresh-images-worker-matrix.yml
+    with:
+      aicage_version: ${{ github.ref_name }}
+    secrets: inherit
+
+  matrix-result:
+    name: Collect matrix result
     runs-on: ubuntu-latest
-    needs: freshness-check
-    if: ${{ needs.freshness-check.outputs.SHOULD_REFRESH == 'true' }}
+    needs:
+      - freshness
+      - matrix
+      - matrix-retry
+    if: ${{ always() }}
     outputs:
-      MATRIX_IMAGES: ${{ steps.matrix.outputs.MATRIX_IMAGES }}
-      BUILD_COUNT: ${{ steps.matrix.outputs.BUILD_COUNT }}
-    env:
-      AICAGE_VERSION: ${{ github.ref_name }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      ROOT_DIR: ${{ github.workspace }}
+      MATRIX_IMAGES: ${{ steps.select.outputs.MATRIX_IMAGES }}
+      BUILD_COUNT: ${{ steps.select.outputs.BUILD_COUNT }}
     steps:
-
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003  # v4.1.1
-
-      - name: Install pipeline dependencies
+      - name: Select successful refresh outputs
+        id: select
         run: |
           set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y skopeo
+          matrix_images=""
+          build_count=""
 
-      - name: Log in to GHCR for image checks
-        run: |
-          set -euo pipefail
-          skopeo login \
-            --username "${{ github.actor }}" \
-            --password "${{ secrets.GITHUB_TOKEN }}" \
-            ghcr.io
-
-      - name: Check whether images need to be built
-        id: matrix
-        run: |
-          set -euo pipefail
-          optional_args=""
-          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            optional_args="--force-build"
+          if [[ "${{ needs.matrix.result }}" == "success" ]]; then
+            matrix_images='${{ needs.matrix.outputs.MATRIX_IMAGES }}'
+            build_count='${{ needs.matrix.outputs.BUILD_COUNT }}'
+          elif [[ "${{ needs.matrix-retry.result }}" == "success" ]]; then
+            matrix_images='${{ needs.matrix-retry.outputs.MATRIX_IMAGES }}'
+            build_count='${{ needs.matrix-retry.outputs.BUILD_COUNT }}'
+          else
+            echo "Both matrix preparation attempts failed." >&2
+            exit 1
           fi
-          matrix_json="$(
-            scripts/refresh-images/matrix.sh \
-              --aicage-version "${AICAGE_VERSION}" \
-              ${optional_args}
-          )"
-          build_count="$(jq -r '.include | length' <<<"${matrix_json}")"
-          printf 'MATRIX_IMAGES=%s\n' "${matrix_json}" >> "${GITHUB_OUTPUT}"
+
+          printf 'MATRIX_IMAGES=%s\n' "${matrix_images}" >> "${GITHUB_OUTPUT}"
           printf 'BUILD_COUNT=%s\n' "${build_count}" >> "${GITHUB_OUTPUT}"
 
   build-images:
     name: Build needed images
     needs:
-      - freshness-check
-      - refresh
-    if: ${{ needs.freshness-check.outputs.SHOULD_REFRESH == 'true' && needs.refresh.outputs.BUILD_COUNT != '0' }}
+      - freshness
+      - matrix-result
+    if: ${{ needs.freshness.outputs.SHOULD_REFRESH == 'true' && needs.matrix-result.outputs.BUILD_COUNT != '0' }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.refresh.outputs.MATRIX_IMAGES) }}
+      matrix: ${{ fromJson(needs.matrix-result.outputs.MATRIX_IMAGES) }}
     uses: ./.github/workflows/build.yml
     with:
       git_ref: ${{ github.ref_name }}

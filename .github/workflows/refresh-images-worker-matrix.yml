@@ -1,0 +1,65 @@
+name: Refresh Agent Images (Worker Matrix)
+
+"on":
+  workflow_call:
+    inputs:
+      aicage_version:
+        description: Release tag used in final image names.
+        required: true
+        type: string
+    outputs:
+      MATRIX_IMAGES:
+        description: Matrix JSON for images that need a rebuild.
+        value: ${{ jobs.prepare-matrix.outputs.MATRIX_IMAGES }}
+      BUILD_COUNT:
+        description: Number of images that need a rebuild.
+        value: ${{ jobs.prepare-matrix.outputs.BUILD_COUNT }}
+
+jobs:
+  prepare-matrix:
+    name: Prepare rebuild matrix
+    runs-on: ubuntu-latest
+    outputs:
+      MATRIX_IMAGES: ${{ steps.matrix.outputs.MATRIX_IMAGES }}
+      BUILD_COUNT: ${{ steps.matrix.outputs.BUILD_COUNT }}
+    env:
+      AICAGE_VERSION: ${{ inputs.aicage_version }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ROOT_DIR: ${{ github.workspace }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003  # v4.1.1
+
+      - name: Install pipeline dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      - name: Log in to GHCR for image checks
+        run: |
+          set -euo pipefail
+          skopeo login \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GITHUB_TOKEN }}" \
+            ghcr.io
+
+      - name: Check whether images need to be built
+        id: matrix
+        run: |
+          set -euo pipefail
+          optional_args=""
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            optional_args="--force-build"
+          fi
+          matrix_json="$(
+            scripts/refresh-images/matrix.sh \
+              --aicage-version "${AICAGE_VERSION}" \
+              ${optional_args}
+          )"
+          build_count="$(jq -r '.include | length' <<<"${matrix_json}")"
+          printf 'MATRIX_IMAGES=%s\n' "${matrix_json}" >> "${GITHUB_OUTPUT}"
+          printf 'BUILD_COUNT=%s\n' "${build_count}" >> "${GITHUB_OUTPUT}"

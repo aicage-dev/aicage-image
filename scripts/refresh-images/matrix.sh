@@ -174,6 +174,7 @@ enqueue_agent_checks() {
       continue
     fi
 
+    echo "Resolving version for agent ${agent} ..." >&2
     agent_version="$(agents/"${agent}"/version.sh)"
     if [[ -z "${agent_version}" ]]; then
       echo "Agent version is empty for ${agent}" >&2
