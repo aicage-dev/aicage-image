@@ -141,13 +141,14 @@ append_build() {
   local agent="$1"
   local base_alias="$2"
 
-  # Multiple check workers append to the same file concurrently.
-  flock "${BUILD_LIST_LOCK}" \
-    bash -c 'printf "%s\t%s\n" "$1" "$2" >> "$3"' \
-    _ \
-    "${agent}" \
-    "${base_alias}" \
-    "${BUILD_LIST}"
+  # Multiple workers can write BUILD_LIST at the same time.
+  # `9>"${BUILD_LIST_LOCK}"` opens the lock file as descriptor 9 for this block.
+  # `flock -x 9` locks it.
+  # The lock is held until the block ends, so this append runs alone.
+  {
+    flock -x 9
+    printf '%s\t%s\n' "${agent}" "${base_alias}" >> "${BUILD_LIST}"
+  } 9>"${BUILD_LIST_LOCK}"
 }
 
 print_needs_rebuild_output() {
