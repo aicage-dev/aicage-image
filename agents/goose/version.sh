@@ -16,5 +16,5 @@ fi
 
 curl \
   "${curl_args[@]}" \
-  https://api.github.com/repos/block/goose/releases/latest \
+  https://api.github.com/repos/aaif-goose/goose/releases/latest \
   | jq -r '.name | ltrimstr("v")'
