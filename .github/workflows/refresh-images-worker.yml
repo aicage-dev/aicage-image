@@ -94,7 +94,12 @@ jobs:
     needs:
       - freshness
       - matrix-result
-    if: ${{ needs.freshness.outputs.SHOULD_REFRESH == 'true' && needs.matrix-result.outputs.BUILD_COUNT != '0' }}
+    if: >-
+      ${{
+        always() &&
+        needs.freshness.outputs.SHOULD_REFRESH == 'true' &&
+        needs.matrix-result.outputs.BUILD_COUNT != '0'
+      }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix-result.outputs.MATRIX_IMAGES) }}
