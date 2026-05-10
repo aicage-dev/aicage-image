@@ -15,6 +15,7 @@ base layers from `ghcr.io/aicage/aicage-image-base`.
 - `${AICAGE_IMAGE_REPOSITORY:-ghcr.io/aicage/aicage}:<agent>-<agent_version>-<base>-<aicage_version>`
 
 Example:
+
 - `ghcr.io/aicage/aicage:codex-ubuntu`
 - `ghcr.io/aicage/aicage:codex-0.77.0-ubuntu-0.0.1`
 
