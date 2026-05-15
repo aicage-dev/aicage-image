@@ -12,10 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  actions: read
-  contents: write
-  packages: write
-  id-token: write
+  contents: read
 
 jobs:
 
@@ -40,6 +37,11 @@ jobs:
 
   build-images:
     needs: [matrix, version-image-check, test-non-redistributable]
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+      id-token: write
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix.outputs.matrix_images) }}

@@ -12,10 +12,8 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  actions: read
   contents: read
-  packages: write
-  id-token: write
+  packages: read
 
 jobs:
   freshness:
@@ -114,6 +112,11 @@ jobs:
         needs.freshness.outputs.SHOULD_REFRESH == 'true' &&
         needs.matrix-result.outputs.BUILD_COUNT != '0'
       }}
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+      id-token: write
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix-result.outputs.MATRIX_IMAGES) }}
