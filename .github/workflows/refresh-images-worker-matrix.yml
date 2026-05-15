@@ -8,6 +8,9 @@ name: Refresh Agent Images (Worker Matrix)
         required: true
         type: string
     outputs:
+      STATUS:
+        description: Whether the matrix attempt succeeded.
+        value: ${{ jobs.prepare-matrix.outputs.STATUS }}
       MATRIX_IMAGES:
         description: Matrix JSON for images that need a rebuild.
         value: ${{ jobs.prepare-matrix.outputs.MATRIX_IMAGES }}
@@ -20,46 +23,23 @@ jobs:
     name: Prepare rebuild matrix
     runs-on: ubuntu-latest
     outputs:
+      STATUS: ${{ steps.result.outputs.STATUS }}
       MATRIX_IMAGES: ${{ steps.matrix.outputs.MATRIX_IMAGES }}
       BUILD_COUNT: ${{ steps.matrix.outputs.BUILD_COUNT }}
-    env:
-      AICAGE_VERSION: ${{ inputs.aicage_version }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      ROOT_DIR: ${{ github.workspace }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
-
-      - name: Install pipeline dependencies
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y skopeo
-
-      - name: Log in to GHCR for image checks
-        run: |
-          set -euo pipefail
-          skopeo login \
-            --username "${{ github.actor }}" \
-            --password "${{ secrets.GITHUB_TOKEN }}" \
-            ghcr.io
-
-      - name: Check whether images need to be built
+      - name: Run matrix attempt
         id: matrix
+        continue-on-error: true
+        uses: ./.github/actions/refresh-images-matrix-attempt
+        with:
+          aicage_version: ${{ inputs.aicage_version }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          actor: ${{ github.actor }}
+          event_name: ${{ github.event_name }}
+
+      - name: Record matrix attempt result
+        id: result
+        if: ${{ always() }}
         run: |
           set -euo pipefail
-          optional_args=""
-          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            optional_args="--force-build"
-          fi
-          matrix_json="$(
-            scripts/refresh-images/matrix.sh \
-              --aicage-version "${AICAGE_VERSION}" \
-              ${optional_args}
-          )"
-          build_count="$(jq -r '.include | length' <<<"${matrix_json}")"
-          printf 'MATRIX_IMAGES=%s\n' "${matrix_json}" >> "${GITHUB_OUTPUT}"
-          printf 'BUILD_COUNT=%s\n' "${build_count}" >> "${GITHUB_OUTPUT}"
+          printf 'STATUS=%s\n' "${{ steps.matrix.outcome }}" >> "${GITHUB_OUTPUT}"

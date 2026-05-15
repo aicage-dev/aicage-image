@@ -50,7 +50,12 @@ jobs:
     needs:
       - freshness
       - matrix
-    if: ${{ always() && needs.matrix.result == 'failure' }}
+    if: >-
+      ${{
+        always() &&
+        needs.freshness.outputs.SHOULD_REFRESH == 'true' &&
+        needs.matrix.outputs.STATUS != 'success'
+      }}
     uses: ./.github/workflows/refresh-images-worker-matrix.yml
     with:
       aicage_version: ${{ github.ref_name }}
@@ -75,10 +80,13 @@ jobs:
           matrix_images=""
           build_count=""
 
-          if [[ "${{ needs.matrix.result }}" == "success" ]]; then
+          if [[ "${{ needs.freshness.outputs.SHOULD_REFRESH }}" != "true" ]]; then
+            matrix_images='{"include":[]}'
+            build_count='0'
+          elif [[ "${{ needs.matrix.outputs.STATUS }}" == "success" ]]; then
             matrix_images='${{ needs.matrix.outputs.MATRIX_IMAGES }}'
             build_count='${{ needs.matrix.outputs.BUILD_COUNT }}'
-          elif [[ "${{ needs.matrix-retry.result }}" == "success" ]]; then
+          elif [[ "${{ needs.matrix-retry.outputs.STATUS }}" == "success" ]]; then
             matrix_images='${{ needs.matrix-retry.outputs.MATRIX_IMAGES }}'
             build_count='${{ needs.matrix-retry.outputs.BUILD_COUNT }}'
           else
