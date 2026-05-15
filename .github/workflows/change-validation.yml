@@ -8,6 +8,9 @@ run-name: Change validation (${{ github.ref_name }})
       - main
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     uses: ./.github/workflows/lint.yml

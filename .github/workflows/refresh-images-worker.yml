@@ -11,6 +11,12 @@ concurrency:
   group: refresh-images
   cancel-in-progress: false
 
+permissions:
+  actions: read
+  contents: read
+  packages: write
+  id-token: write
+
 jobs:
   freshness:
     name: Check release freshness

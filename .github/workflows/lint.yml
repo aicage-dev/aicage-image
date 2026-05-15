@@ -5,6 +5,9 @@ run-name: Lint (${{ github.ref_name }})
   workflow_call: {}
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint

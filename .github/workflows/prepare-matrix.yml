@@ -12,6 +12,9 @@ run-name: Prepare matrix (${{ github.ref_name }})
         value: ${{ jobs.matrix.outputs.matrix_nr_images }}
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   matrix:
     name: Build matrix

@@ -18,6 +18,10 @@ name: Refresh Agent Images (Worker Matrix)
         description: Number of images that need a rebuild.
         value: ${{ jobs.prepare-matrix.outputs.BUILD_COUNT }}
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   prepare-matrix:
     name: Prepare rebuild matrix

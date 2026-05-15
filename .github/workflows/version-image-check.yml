@@ -4,6 +4,9 @@ name: Version Image Check
   workflow_call:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   version-image-check:
     name: Version image check (${{ matrix.platform }})
