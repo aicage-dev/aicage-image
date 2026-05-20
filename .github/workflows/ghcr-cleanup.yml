@@ -143,7 +143,10 @@ jobs:
           AGENT_LIST="$(IFS='|'; echo "${ESCAPED_AGENTS[*]}")"
           BASE_LIST="$(IFS='|'; echo "${ESCAPED_BASES[*]}")"
           RELEASE_LIST="$(IFS='|'; echo "${ESCAPED_RELEASES[*]}")"
-          KEEP_TAGS_REGEX="^(${AGENT_LIST})(-[0-9]+\\.[0-9]+\\.[0-9]+)?-(${BASE_LIST})(-(${RELEASE_LIST}))?(-arm64|-amd64)?$"
+          ARCH_SUFFIX="(?:-(?:arm64|amd64))?"
+          AGENT_BASE_TAG="(?:${AGENT_LIST})-(?:${BASE_LIST})"
+          RELEASE_TAG="(?:${AGENT_LIST})-[0-9]+\\.[0-9]+\\.[0-9]+-(?:${BASE_LIST})-(?:${RELEASE_LIST})"
+          KEEP_TAGS_REGEX="^(?:${AGENT_BASE_TAG}|${RELEASE_TAG})${ARCH_SUFFIX}$"
 
           {
             echo "agent_list=${AGENT_LIST}"
