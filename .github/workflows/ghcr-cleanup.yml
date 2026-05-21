@@ -72,6 +72,12 @@ jobs:
           source scripts/common.sh
           load_config_file
 
+          regex_escape() {
+            printf '%s' "$1" | sed -E 's/[][(){}.^$*+?|\\-]/\\\\&/g'
+          }
+
+          readonly SEMVER_REGEX='^[0-9]+\.[0-9]+\.[0-9]+$'
+
           mapfile -t AGENTS < <(find agents -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
           if (( ${#AGENTS[@]} == 0 )); then
             echo "No agent folders found under ./agents" >&2
@@ -109,32 +115,38 @@ jobs:
           fi
 
           ESCAPED_AGENTS=()
+          ESCAPED_AGENT_VERSIONS=()
           for agent in "${AGENTS[@]}"; do
-            escaped_agent="$(printf '%s' "${agent}" | sed -E 's/[][(){}.^$*+?|\\-]/\\\\&/g')"
+            escaped_agent="$(regex_escape "${agent}")"
             ESCAPED_AGENTS+=("${escaped_agent}")
+
+            agent_version="$(agents/"${agent}"/version.sh)"
+            if [[ ! "${agent_version}" =~ ${SEMVER_REGEX} ]]; then
+              echo "Agent version is not semver for ${agent}: ${agent_version}" >&2
+              exit 1
+            fi
+            escaped_agent_version="$(regex_escape "${agent_version}")"
+            ESCAPED_AGENT_VERSIONS+=("${escaped_agent}-${escaped_agent_version}")
           done
 
           ESCAPED_BASES=()
           for base in "${BASES[@]}"; do
-            escaped_base="$(printf '%s' "${base}" | sed -E 's/[][(){}.^$*+?|\\-]/\\\\&/g')"
+            escaped_base="$(regex_escape "${base}")"
             ESCAPED_BASES+=("${escaped_base}")
           done
 
           AGENT_LIST="$(IFS='|'; echo "${ESCAPED_AGENTS[*]}")"
+          AGENT_VERSION_LIST="$(IFS='|'; echo "${ESCAPED_AGENT_VERSIONS[*]}")"
           BASE_LIST="$(IFS='|'; echo "${ESCAPED_BASES[*]}")"
-          RELEASE_LIST="$(
-            printf '%s\n' "${RELEASES[@]}" \
-              | jq -R -s '
-                  split("\n")[:-1]
-                  | map(capture("^(?<major>[0-9]+)\\.(?<minor>[0-9]+)\\.(?<patch>[0-9]+)$"))
-                  | group_by(.major + "." + .minor)
-                  | map(.[0].major + "\\\\." + .[0].minor + "\\\\." + (if length == 1 then .[0].patch else "(?:" + (map(.patch) | join("|")) + ")" end))
-                  | join("|")
-                '
-          )"
+          CURRENT_AICAGE_VERSION="${RELEASES[0]}"
+          if [[ ! "${CURRENT_AICAGE_VERSION}" =~ ${SEMVER_REGEX} ]]; then
+            echo "Latest release tag is not semver: ${CURRENT_AICAGE_VERSION}" >&2
+            exit 1
+          fi
+          ESCAPED_CURRENT_AICAGE_VERSION="$(regex_escape "${CURRENT_AICAGE_VERSION}")"
           ARCH_SUFFIX="(?:-(?:arm64|amd64))?"
           AGENT_BASE_TAG="(?:${AGENT_LIST})-(?:${BASE_LIST})"
-          RELEASE_TAG="(?:${AGENT_LIST})-[0-9]+\\.[0-9]+\\.[0-9]+-(?:${BASE_LIST})-(?:${RELEASE_LIST})"
+          RELEASE_TAG="(?:${AGENT_VERSION_LIST})-(?:${BASE_LIST})-${ESCAPED_CURRENT_AICAGE_VERSION}"
           EXCLUDE_TAGS_REGEX="^(?:${AGENT_BASE_TAG}|${RELEASE_TAG})${ARCH_SUFFIX}$"
 
           {
