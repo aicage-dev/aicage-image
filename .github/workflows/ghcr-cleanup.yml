@@ -114,11 +114,10 @@ jobs:
             exit 1
           fi
 
-          ESCAPED_AGENTS=()
-          ESCAPED_AGENT_VERSIONS=()
+          ESCAPED_AGENT_TAG_PREFIXES=()
           for agent in "${AGENTS[@]}"; do
             escaped_agent="$(regex_escape "${agent}")"
-            ESCAPED_AGENTS+=("${escaped_agent}")
+            ESCAPED_AGENT_TAG_PREFIXES+=("${escaped_agent}")
 
             agent_version="$(agents/"${agent}"/version.sh)"
             if [[ ! "${agent_version}" =~ ${SEMVER_REGEX} ]]; then
@@ -126,7 +125,7 @@ jobs:
               exit 1
             fi
             escaped_agent_version="$(regex_escape "${agent_version}")"
-            ESCAPED_AGENT_VERSIONS+=("${escaped_agent}-${escaped_agent_version}")
+            ESCAPED_AGENT_TAG_PREFIXES+=("${escaped_agent}-${escaped_agent_version}")
           done
 
           ESCAPED_BASES=()
@@ -135,8 +134,7 @@ jobs:
             ESCAPED_BASES+=("${escaped_base}")
           done
 
-          AGENT_LIST="$(IFS='|'; echo "${ESCAPED_AGENTS[*]}")"
-          AGENT_VERSION_LIST="$(IFS='|'; echo "${ESCAPED_AGENT_VERSIONS[*]}")"
+          AGENT_TAG_PREFIX_LIST="$(IFS='|'; echo "${ESCAPED_AGENT_TAG_PREFIXES[*]}")"
           BASE_LIST="$(IFS='|'; echo "${ESCAPED_BASES[*]}")"
           CURRENT_AICAGE_VERSION="${RELEASES[0]}"
           if [[ ! "${CURRENT_AICAGE_VERSION}" =~ ${SEMVER_REGEX} ]]; then
@@ -144,10 +142,8 @@ jobs:
             exit 1
           fi
           ESCAPED_CURRENT_AICAGE_VERSION="$(regex_escape "${CURRENT_AICAGE_VERSION}")"
-          ARCH_SUFFIX="(?:-(?:arm64|amd64))?"
-          AGENT_BASE_TAG="(?:${AGENT_LIST})-(?:${BASE_LIST})"
-          RELEASE_TAG="(?:${AGENT_VERSION_LIST})-(?:${BASE_LIST})-${ESCAPED_CURRENT_AICAGE_VERSION}"
-          EXCLUDE_TAGS_REGEX="^(?:${AGENT_BASE_TAG}|${RELEASE_TAG})${ARCH_SUFFIX}$"
+          ARCH_LIST="arm64|amd64"
+          EXCLUDE_TAGS_REGEX="^(${AGENT_TAG_PREFIX_LIST})-(${BASE_LIST})(-${ESCAPED_CURRENT_AICAGE_VERSION})?(-(${ARCH_LIST}))?$"
 
           {
             echo "exclude_tags_regex=${EXCLUDE_TAGS_REGEX}"
