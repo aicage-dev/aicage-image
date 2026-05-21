@@ -120,15 +120,18 @@ jobs:
             ESCAPED_BASES+=("${escaped_base}")
           done
 
-          ESCAPED_RELEASES=()
-          for rel in "${RELEASES[@]}"; do
-            escaped_rel="$(printf '%s' "${rel}" | sed -E 's/[][(){}.^$*+?|\\-]/\\\\&/g')"
-            ESCAPED_RELEASES+=("${escaped_rel}")
-          done
-
           AGENT_LIST="$(IFS='|'; echo "${ESCAPED_AGENTS[*]}")"
           BASE_LIST="$(IFS='|'; echo "${ESCAPED_BASES[*]}")"
-          RELEASE_LIST="$(IFS='|'; echo "${ESCAPED_RELEASES[*]}")"
+          RELEASE_LIST="$(
+            printf '%s\n' "${RELEASES[@]}" \
+              | jq -R -s '
+                  split("\n")[:-1]
+                  | map(capture("^(?<major>[0-9]+)\\.(?<minor>[0-9]+)\\.(?<patch>[0-9]+)$"))
+                  | group_by(.major + "." + .minor)
+                  | map(.[0].major + "\\\\." + .[0].minor + "\\\\." + (if length == 1 then .[0].patch else "(?:" + (map(.patch) | join("|")) + ")" end))
+                  | join("|")
+                '
+          )"
           ARCH_SUFFIX="(?:-(?:arm64|amd64))?"
           AGENT_BASE_TAG="(?:${AGENT_LIST})-(?:${BASE_LIST})"
           RELEASE_TAG="(?:${AGENT_LIST})-[0-9]+\\.[0-9]+\\.[0-9]+-(?:${BASE_LIST})-(?:${RELEASE_LIST})"
