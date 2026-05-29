@@ -207,6 +207,25 @@ jobs:
             org.opencontainers.image.base.name=${{ steps.config.outputs.BASE_IMAGE }}
             org.opencontainers.image.base.digest=${{ steps.base-image-digest.outputs.DIGEST }}
 
+      - name: Prepare vars to remove test tag
+        id: untag_vars
+        run: |
+          set -euo pipefail
+          image_path="${IMAGE_REF#*/}"
+          {
+            echo "image_owner=${image_path%%/*}"
+            echo "image_package=${image_path#*/}"
+            echo "image_test_tag_name=${IMAGE_TEST_TAG##*:}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Remove test tag on image
+        uses: ghcr-manager/ghcr-untag-action@0c32d681a3f68580cbcfebfcf126cbab8df872f8  # v1.0.4
+        with:
+          token: ${{ github.token }}
+          owner: ${{ steps.untag_vars.outputs.image_owner }}
+          package: ${{ steps.untag_vars.outputs.image_package }}
+          tags: ${{ steps.untag_vars.outputs.image_test_tag_name }}
+
       - name: "Test: Pull final image for local tests"
         run: |
           set -euo pipefail
