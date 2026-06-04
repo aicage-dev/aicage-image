@@ -10,10 +10,6 @@ name: GHCR Cleanup
         description: "Retention window in days for cleanup"
         type: number
         default: 30
-      keep-n-tagged:
-        description: "How many tags to keep"
-        type: number
-        default: 3
       dry-run:
         description: "Run in dry-run mode (recommended first)"
         type: boolean
@@ -154,16 +150,16 @@ jobs:
     needs: prepare-retention-regex
     runs-on: ubuntu-latest
     steps:
-      - name: Cleanup candidate images
-        uses: dataaxiom/ghcr-cleanup-action@f092b48ba3b604b2a83690dc4b2bbb3392e1045f  # v1.2.1
+      - name: Cleanup old images
+        uses: gh-workflow/ghcr-manager@169eb04dce3b2b4d93bfdfe5a6b39b6f7a05f1d1  # v1.0.3
         with:
+          command: cleanup
           token: ${{ secrets.GHCR_CLEANUP_PAT != '' && secrets.GHCR_CLEANUP_PAT || github.token }}
           owner: ${{ github.repository_owner }}
-          repository: ${{ github.event.repository.name }}
           package: ${{ needs.prepare-retention-regex.outputs.package_name }}
+          upload-artifacts: true
           use-regex: true
           delete-tags: '.*'
-          keep-n-tagged: ${{ github.event_name == 'workflow_dispatch' && inputs.keep-n-tagged || 3 }}
           exclude-tags: ${{ needs.prepare-retention-regex.outputs.exclude_tags_regex }}
           older-than: ${{ github.event_name == 'workflow_dispatch' && inputs.older-than-days || 30 }} days
           delete-untagged: true
