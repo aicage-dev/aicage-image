@@ -81,6 +81,18 @@ download_bases_archive() {
   printf '%s\n' "${tmpdir}"
 }
 
+get_base_list_field() {
+  local bases_dir="$1"
+  local alias="$2"
+  local field="$3"
+  local definition_file="${bases_dir}/${alias}/base.yml"
+
+  [[ -f "${definition_file}" ]] || _die "Missing base.yml for ${alias} in ${bases_dir}"
+
+  yq -r ".${field} // [] | .[]" "${definition_file}" \
+    || _die "Failed to read ${field} from ${definition_file}"
+}
+
 list_base_aliases() {
   local bases_dir="$1"
 
@@ -109,6 +121,12 @@ list_contains() {
   done
 
   return 1
+}
+
+get_base_architectures() {
+  local bases_dir="$1"
+  local alias="$2"
+  get_base_list_field "${bases_dir}" "${alias}" architectures
 }
 
 get_bases() {

@@ -42,7 +42,8 @@ load_base_metadata_file() {
   while IFS= read -r base_alias; do
     [[ -n "${base_alias}" ]] || continue
     base_image="${base_repo}:${base_alias}"
-    for arch in amd64 arm64; do
+    while IFS= read -r arch; do
+      [[ -n "${arch}" ]] || continue
       if ! base_digest="$(get_manifest_digest "${base_image}" "${arch}")"; then
         echo "Failed to load ${arch} digest for ${base_image}" >&2
         return 1
@@ -66,7 +67,7 @@ load_base_metadata_file() {
         "${arch}" \
         "${base_digest}" \
         "${base_last_layer}" >> "${metadata_file}"
-    done
+    done < <(get_base_architectures "${bases_dir}" "${base_alias}")
   done < <(list_base_aliases "${bases_dir}")
 }
 

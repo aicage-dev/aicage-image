@@ -41,22 +41,43 @@ permissions:
 env:
   BASE_IMAGE_COSIGN_IDENTITY_REGEXP: >-
     ^https://github.com/aicage/aicage-image-base/.github/workflows/.*@(?:refs/.*/.*|[0-9a-f]{40})$
+  RUNNER_AMD64: ubuntu-latest
+  RUNNER_ARM64: ubuntu-24.04-arm
 
 jobs:
+  prepare:
+    name: "${{ matrix.arch }}: Prepare architecture matrix"
+    runs-on: ubuntu-latest
+    env:
+      BASE_ALIAS: ${{ inputs.base }}
+      ROOT_DIR: ${{ github.workspace }}
+    outputs:
+      BUILD_MATRIX: ${{ steps.matrix.outputs.BUILD_MATRIX }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          ref: ${{ inputs.git_ref || github.ref }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+
+      - name: Resolve supported architectures
+        id: matrix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          matrix_json="$(scripts/ci/base-build-matrix.sh)"
+          printf 'BUILD_MATRIX=%s\n' "${matrix_json}" >> "${GITHUB_OUTPUT}"
 
   build:
     name: "${{ matrix.arch }}: Build and test ${{ inputs.base }}-${{ inputs.agent }}"
+    needs: prepare
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - arch: amd64
-            platform: linux/amd64
-            runner: ubuntu-latest
-          - arch: arm64
-            platform: linux/arm64
-            runner: ubuntu-24.04-arm
+      matrix: ${{ fromJson(needs.prepare.outputs.BUILD_MATRIX) }}
     env:
       PLATFORM: ${{ matrix.platform }}
       ARCH_SUFFIX: ${{ matrix.arch }}
@@ -132,6 +153,10 @@ jobs:
           ALLOWED_BASES="$(get_bases "${AGENT}" "${BASES_TMPDIR}/bases" "${BASE_ALIAS}")"
           if ! printf '%s\n' "${ALLOWED_BASES}" | grep -Fxq "${BASE_ALIAS}"; then
             echo "Base '${BASE_ALIAS}' is excluded for agent '${AGENT}'" >&2
+            exit 1
+          fi
+          if ! get_base_architectures "${BASES_TMPDIR}/bases" "${BASE_ALIAS}" | grep -Fxq "${ARCH_SUFFIX}"; then
+            echo "Base '${BASE_ALIAS}' does not support architecture '${ARCH_SUFFIX}'" >&2
             exit 1
           fi
           {
@@ -306,6 +331,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prepare digests for multi-arch publish action
+        id: platform-digests
+        run: |
+          set -euo pipefail
+          platform_digests_file="$(mktemp)"
+          if [[ -n "${{ needs.build.outputs.INDEX_DIGEST_amd64 }}" ]]; then
+            printf '%s\n' "linux/amd64=${{ needs.build.outputs.INDEX_DIGEST_amd64 }}" >> "${platform_digests_file}"
+          fi
+          if [[ -n "${{ needs.build.outputs.INDEX_DIGEST_arm64 }}" ]]; then
+            printf '%s\n' "linux/arm64=${{ needs.build.outputs.INDEX_DIGEST_arm64 }}" >> "${platform_digests_file}"
+          fi
+          if [[ ! -s "${platform_digests_file}" ]]; then
+            echo "No platform digests produced for ${{ inputs.base }}/${{ inputs.agent }}" >&2
+            exit 1
+          fi
+          {
+            echo 'PLATFORM_DIGESTS<<EOF'
+            cat "${platform_digests_file}"
+            echo 'EOF'
+          } >> "${GITHUB_OUTPUT}"
+
       - name: Use multi-arch publish action
         id: publish
         uses: gh-workflow/multiarch-image-publish@c5eac5dd8f7ed6b39fffc6e2c2242966b4917260  # 0.2.1
@@ -314,9 +360,7 @@ jobs:
           tags: |
             ${{ needs.build.outputs.VERSION_TAG }}
             ${{ needs.build.outputs.PURPOSE_TAG }}
-          platform_digests: |
-            linux/amd64=${{ needs.build.outputs.INDEX_DIGEST_amd64 }}
-            linux/arm64=${{ needs.build.outputs.INDEX_DIGEST_arm64 }}
+          platform_digests: ${{ steps.platform-digests.outputs.PLATFORM_DIGESTS }}
           annotations: |
             org.opencontainers.image.title=aicage
             org.opencontainers.image.description=Agent image for ${{ inputs.agent }}

@@ -62,13 +62,24 @@ read_base_metadata_field() {
     "${metadata_file}"
 }
 
+list_base_metadata_architectures() {
+  local metadata_file="$1"
+  local base_alias="$2"
+
+  awk -F '\t' \
+    -v base_alias="${base_alias}" \
+    '$1 == base_alias { print $2; found = 1 }
+     END { if (!found) exit 1 }' \
+    "${metadata_file}"
+}
+
 # Return codes:
 #   0 => rebuild required
 #   1 => image is up to date
 #   2 => check failed
 #
-# The comparison validates that the final image exists for both arches and still contains the
-# last layer from the current base image for each architecture.
+# The comparison validates that the final image exists for each supported architecture and still
+# contains the last layer from the current base image for that architecture.
 needs_rebuild() {
   local base_image_tag="$1"
   local final_image_tag="$2"
@@ -86,7 +97,8 @@ needs_rebuild() {
     return 0
   fi
 
-  for arch in amd64 arm64; do
+  while IFS= read -r arch; do
+    [[ -n "${arch}" ]] || continue
     local base_digest
     if ! base_digest="$(read_base_metadata_field "${base_metadata_file}" "${base_image_tag}" "${arch}" digest)"; then
       echo "Missing cached ${arch} digest for ${base_image}" >&2
@@ -130,7 +142,7 @@ needs_rebuild() {
       echo "${final_repo}@${final_digest} missing base layer ${base_last_layer} (${arch})"
       return 0
     fi
-  done
+  done < <(list_base_metadata_architectures "${base_metadata_file}" "${base_image_tag}")
 
   return 1
 }
