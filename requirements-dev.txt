@@ -4,5 +4,5 @@ pymarkdownlnt>=0.9.38,<1
 pytest>=9.1.1,<10
 pytest-cov>=7.1.0,<8
 jsonschema>=4.26.0,<5
-check-jsonschema>=0.37.3,<1
+check-jsonschema>=0.37.4,<1
 yamllint>=1.38.0,<2
