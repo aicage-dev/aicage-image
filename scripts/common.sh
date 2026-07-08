@@ -132,7 +132,9 @@ list_base_aliases() {
   shopt -s nullglob
   for dir in "${bases_dir}"/*/; do
     basename "${dir}"
-  done | sort -u
+  done | sort -u | while IFS= read -r base_alias; do
+    printf '%s\n' "${base_alias}"
+  done
   shopt -u nullglob
 }
 
