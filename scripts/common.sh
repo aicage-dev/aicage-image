@@ -101,6 +101,17 @@ get_agent_list_field() {
     || _die "Failed to read ${field} from ${definition_file}"
 }
 
+list_configured_agents() {
+  local agent_alias
+  local configured_filter="${AICAGE_BUILD_AGENT_FILTER:-.*}"
+
+  find "${AGENT_DEFINITIONS_DIR}" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | while IFS= read -r agent_alias; do
+    if [[ "${agent_alias}" =~ ${configured_filter} ]]; then
+      printf '%s\n' "${agent_alias}"
+    fi
+  done
+}
+
 download_bases_archive() {
   local tmpdir
   local base_repo="${AICAGE_IMAGE_BASE_REPOSITORY##*/}"

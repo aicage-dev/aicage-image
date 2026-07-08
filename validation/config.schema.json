@@ -10,6 +10,7 @@
     "AICAGE_IMAGE_BASE_SOURCE_REPOSITORY",
     "AICAGE_IMAGE_REPOSITORY",
     "AICAGE_IMAGE_SOURCE_REPOSITORY",
+    "AICAGE_BUILD_AGENT_FILTER",
     "AICAGE_IMAGE_UTIL_VERSION_CHECK_IMAGE"
   ],
   "properties": {
@@ -32,6 +33,9 @@
       "type": "string"
     },
     "AICAGE_IMAGE_SOURCE_REPOSITORY": {
+      "type": "string"
+    },
+    "AICAGE_BUILD_AGENT_FILTER": {
       "type": "string"
     },
     "AICAGE_IMAGE_UTIL_VERSION_CHECK_IMAGE": {

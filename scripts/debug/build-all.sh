@@ -43,11 +43,9 @@ done
 
 load_config_file
 
-AGENTS_DIR="${ROOT_DIR}/agents"
 BASES_TMPDIR="$(download_bases_archive)"
 
-for agent_dir in "${AGENTS_DIR}"/*; do
-  agent="$(basename "${agent_dir}")"
+while IFS= read -r agent; do
   AICAGE_BASE_ALIASES="$(get_bases "${agent}" "${BASES_TMPDIR}/bases" "${AICAGE_BASE_ALIASES:-}")"
   for base_alias in ${AICAGE_BASE_ALIASES}; do
     echo "[build-all] Building ${agent}-${base_alias}" >&2
@@ -56,4 +54,4 @@ for agent_dir in "${AGENTS_DIR}"/*; do
       --base "${base_alias}" \
       "${PUSHED_ARGS[@]}"
   done
-done
+done < <(list_configured_agents)

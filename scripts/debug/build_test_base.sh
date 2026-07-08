@@ -10,8 +10,7 @@ load_config_file
 
 echo "Testing base: ${BASE}"
 
-for dir in agents/*; do
-  agent="$(basename "${dir}")"
+while IFS= read -r agent; do
 
   echo "Testing agent: ${agent}"
 
@@ -21,4 +20,4 @@ for dir in agents/*; do
   image_ref="$(get_image_ref)"
   scripts/test.sh --image "${image_ref}:${agent}-${BASE}" --agent "${agent}" \
     || ( echo "Testing agent ${agent} failed" && false )
-done
+done < <(list_configured_agents)
