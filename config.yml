@@ -2,9 +2,9 @@
 AICAGE_IMAGE_REGISTRY: ghcr.io
 AICAGE_IMAGE_REGISTRY_API_URL: https://ghcr.io/v2
 AICAGE_IMAGE_REGISTRY_API_TOKEN_URL: https://ghcr.io/token?service=ghcr.io&scope=repository
-AICAGE_IMAGE_BASE_REPOSITORY: aicage/aicage-image-base
-AICAGE_IMAGE_BASE_SOURCE_REPOSITORY: aicage/aicage-image-base
-AICAGE_IMAGE_REPOSITORY: aicage/aicage
-AICAGE_IMAGE_SOURCE_REPOSITORY: aicage/aicage-image
-AICAGE_BUILD_AGENT_FILTER: ".*"
+AICAGE_IMAGE_BASE_REPOSITORY: aicage-dev/aicage-image-base
+AICAGE_IMAGE_BASE_SOURCE_REPOSITORY: aicage-dev/aicage-image-base
+AICAGE_IMAGE_REPOSITORY: aicage-dev/aicage
+AICAGE_IMAGE_SOURCE_REPOSITORY: aicage-dev/aicage-image
+AICAGE_BUILD_AGENT_FILTER: "claude|codex"
 AICAGE_IMAGE_UTIL_VERSION_CHECK_IMAGE: ghcr.io/aicage/aicage-image-util:agent-version
