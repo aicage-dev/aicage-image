@@ -126,13 +126,27 @@ get_base_list_field() {
 
 list_base_aliases() {
   local bases_dir="$1"
+  local config_file
+  local configured_filter
 
   [[ -d "${bases_dir}" ]] || _die "Bases directory not found: ${bases_dir}"
+
+  config_file="$(cd "${bases_dir}/.." && pwd)/config.yml"
+  configured_filter='.*'
+  if [[ -f "${config_file}" ]]; then
+    configured_filter="$(yq -er '.AICAGE_BUILD_BASE_FILTER // ".*"' "${config_file}")" \
+      || _die "Failed to read AICAGE_BUILD_BASE_FILTER from ${config_file}"
+  fi
 
   shopt -s nullglob
   for dir in "${bases_dir}"/*/; do
     basename "${dir}"
-  done | sort -u
+  done | sort -u | while IFS= read -r base_alias; do
+    [[ -n "${base_alias}" ]] || continue
+    if [[ "${base_alias}" =~ ${configured_filter} ]]; then
+      printf '%s\n' "${base_alias}"
+    fi
+  done
   shopt -u nullglob
 }
 
