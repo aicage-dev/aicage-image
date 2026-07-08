@@ -39,8 +39,6 @@ permissions:
   actions: read
 
 env:
-  BASE_IMAGE_COSIGN_IDENTITY_REGEXP: >-
-    ^https://github.com/aicage/aicage-image-base/.github/workflows/.*@(?:refs/.*/.*|[0-9a-f]{40})$
   RUNNER_AMD64: ubuntu-latest
   RUNNER_ARM64: ubuntu-24.04-arm
 
@@ -86,12 +84,15 @@ jobs:
       ROOT_DIR: ${{ github.workspace }}
       AICAGE_VERSION: ${{ inputs.git_ref || github.ref_name }}
     outputs:
+      BASE_IMAGE_COSIGN_IDENTITY_REGEXP: ${{ steps.config.outputs.BASE_IMAGE_COSIGN_IDENTITY_REGEXP }}
       BASE_IMAGE_DIGEST: ${{ steps.base-image-digest.outputs.DIGEST }}
       BASE_IMAGE_NAME: ${{ steps.config.outputs.BASE_IMAGE }}
+      BASE_IMAGE_SOURCE_URL: ${{ steps.config.outputs.BASE_IMAGE_SOURCE_URL }}
       CREATED: ${{ steps.oci.outputs.created }}
       INDEX_DIGEST_amd64: ${{ steps.out-amd64.outputs.INDEX_DIGEST }}
       INDEX_DIGEST_arm64: ${{ steps.out-arm64.outputs.INDEX_DIGEST }}
       IMAGE_REF: ${{ steps.config.outputs.IMAGE_REF }}
+      IMAGE_SOURCE_URL: ${{ steps.config.outputs.IMAGE_SOURCE_URL }}
       REVISION: ${{ steps.oci.outputs.revision }}
       VERSION_TAG: ${{ steps.config.outputs.VERSION_TAG }}
       PURPOSE_TAG: ${{ steps.config.outputs.PURPOSE_TAG }}
@@ -143,8 +144,11 @@ jobs:
             echo "Agent version is empty for ${AGENT}" >&2
             exit 1
           fi
-          BASE_IMAGE="${AICAGE_IMAGE_REGISTRY}/${AICAGE_IMAGE_BASE_REPOSITORY}:${BASE_ALIAS}"
-          IMAGE_REF="${AICAGE_IMAGE_REGISTRY}/${AICAGE_IMAGE_REPOSITORY}"
+          BASE_IMAGE="$(get_image_base_ref):${BASE_ALIAS}"
+          IMAGE_REF="$(get_image_ref)"
+          BASE_IMAGE_SOURCE_URL="$(get_image_base_source_url)"
+          BASE_IMAGE_COSIGN_IDENTITY_REGEXP="$(get_image_base_workflow_identity_regexp)"
+          IMAGE_SOURCE_URL="$(get_image_source_url)"
           VERSION_TAG="${AGENT}-${AGENT_VERSION}-${BASE_ALIAS}-${AICAGE_VERSION}"
           PURPOSE_TAG="${AGENT}-${BASE_ALIAS}"
           IMAGE_TEST_TAG="${IMAGE_REF}:${VERSION_TAG}-${ARCH_SUFFIX}-test"
@@ -161,14 +165,20 @@ jobs:
           fi
           {
             echo "BASE_IMAGE=${BASE_IMAGE}"
+            echo "BASE_IMAGE_COSIGN_IDENTITY_REGEXP=${BASE_IMAGE_COSIGN_IDENTITY_REGEXP}"
+            echo "BASE_IMAGE_SOURCE_URL=${BASE_IMAGE_SOURCE_URL}"
             echo "IMAGE_REF=${IMAGE_REF}"
+            echo "IMAGE_SOURCE_URL=${IMAGE_SOURCE_URL}"
             echo "VERSION_TAG=${VERSION_TAG}"
             echo "PURPOSE_TAG=${PURPOSE_TAG}"
             echo "IMAGE_TEST_TAG=${IMAGE_TEST_TAG}"
           } >> "$GITHUB_OUTPUT"
           {
             echo "BASE_IMAGE=${BASE_IMAGE}"
+            echo "BASE_IMAGE_COSIGN_IDENTITY_REGEXP=${BASE_IMAGE_COSIGN_IDENTITY_REGEXP}"
+            echo "BASE_IMAGE_SOURCE_URL=${BASE_IMAGE_SOURCE_URL}"
             echo "IMAGE_REF=${IMAGE_REF}"
+            echo "IMAGE_SOURCE_URL=${IMAGE_SOURCE_URL}"
             echo "VERSION_TAG=${VERSION_TAG}"
             echo "PURPOSE_TAG=${PURPOSE_TAG}"
             echo "IMAGE_TEST_TAG=${IMAGE_TEST_TAG}"
@@ -202,7 +212,7 @@ jobs:
       - name: Verify base image manifest annotations
         run: |
           set -euo pipefail
-          expected_source="https://github.com/aicage/aicage-image-base"
+          expected_source="${BASE_IMAGE_SOURCE_URL}"
           docker buildx imagetools inspect \
             --raw "${{ env.BASE_IMAGE_DIGEST_REF }}" \
             | jq -e \
@@ -222,6 +232,7 @@ jobs:
           build-args: |
             BASE_IMAGE=${{ env.BASE_IMAGE_DIGEST_REF }}
             AGENT=${{ env.AGENT }}
+            IMAGE_SOURCE_URL=${{ env.IMAGE_SOURCE_URL }}
           tags: |
             ${{ steps.config.outputs.IMAGE_TEST_TAG }}
           labels: |
@@ -364,7 +375,7 @@ jobs:
           annotations: |
             org.opencontainers.image.title=aicage
             org.opencontainers.image.description=Agent image for ${{ inputs.agent }}
-            org.opencontainers.image.source=https://github.com/aicage/aicage-image
+            org.opencontainers.image.source=${{ needs.build.outputs.IMAGE_SOURCE_URL }}
             org.opencontainers.image.licenses=Apache-2.0
             org.opencontainers.image.revision=${{ needs.build.outputs.REVISION }}
             org.opencontainers.image.created=${{ needs.build.outputs.CREATED }}
@@ -392,7 +403,7 @@ jobs:
               --arg expected_version "$expected_version" '
               .annotations["org.opencontainers.image.title"] == "aicage"
               and .annotations["org.opencontainers.image.description"] == $expected_description
-              and .annotations["org.opencontainers.image.source"] == "https://github.com/aicage/aicage-image"
+              and .annotations["org.opencontainers.image.source"] == "${{ needs.build.outputs.IMAGE_SOURCE_URL }}"
               and .annotations["org.opencontainers.image.licenses"] == "Apache-2.0"
               and .annotations["org.opencontainers.image.revision"] == $expected_revision
               and .annotations["org.opencontainers.image.created"] == $expected_created

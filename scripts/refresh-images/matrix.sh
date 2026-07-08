@@ -32,12 +32,13 @@ FORCE_BUILD=0
 load_base_metadata_file() {
   local metadata_file="$1"
   local bases_dir="$2"
-  local base_repo="${AICAGE_IMAGE_REGISTRY}/${AICAGE_IMAGE_BASE_REPOSITORY}"
+  local base_repo
   local base_alias
   local base_image
   local base_digest
   local base_last_layer
 
+  base_repo="$(get_image_base_ref)"
   : > "${metadata_file}"
   while IFS= read -r base_alias; do
     [[ -n "${base_alias}" ]] || continue

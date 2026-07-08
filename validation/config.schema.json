@@ -7,7 +7,10 @@
     "AICAGE_IMAGE_REGISTRY_API_URL",
     "AICAGE_IMAGE_REGISTRY_API_TOKEN_URL",
     "AICAGE_IMAGE_BASE_REPOSITORY",
-    "AICAGE_IMAGE_REPOSITORY"
+    "AICAGE_IMAGE_BASE_SOURCE_REPOSITORY",
+    "AICAGE_IMAGE_REPOSITORY",
+    "AICAGE_IMAGE_SOURCE_REPOSITORY",
+    "AICAGE_IMAGE_UTIL_VERSION_CHECK_IMAGE"
   ],
   "properties": {
     "AICAGE_IMAGE_REGISTRY": {
@@ -22,7 +25,16 @@
     "AICAGE_IMAGE_BASE_REPOSITORY": {
       "type": "string"
     },
+    "AICAGE_IMAGE_BASE_SOURCE_REPOSITORY": {
+      "type": "string"
+    },
     "AICAGE_IMAGE_REPOSITORY": {
+      "type": "string"
+    },
+    "AICAGE_IMAGE_SOURCE_REPOSITORY": {
+      "type": "string"
+    },
+    "AICAGE_IMAGE_UTIL_VERSION_CHECK_IMAGE": {
       "type": "string"
     }
   },

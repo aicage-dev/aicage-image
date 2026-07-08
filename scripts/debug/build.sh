@@ -65,16 +65,18 @@ if ! printf '%s\n' "${ALLOWED_BASES}" | grep -Fxq "${BASE_ALIAS}"; then
   die "Base '${BASE_ALIAS}' is excluded for agent '${AGENT}'"
 fi
 
-BASE_IMAGE="${AICAGE_IMAGE_REGISTRY}/${AICAGE_IMAGE_BASE_REPOSITORY}:${BASE_ALIAS}"
+BASE_IMAGE="$(get_image_base_ref):${BASE_ALIAS}"
+IMAGE_REF="$(get_image_ref)"
+IMAGE_SOURCE_URL="$(get_image_source_url)"
 AGENT_VERSION="$("${ROOT_DIR}/agents/${AGENT}/version.sh")"
 [[ -n "${AGENT_VERSION}" ]] || die "Agent version is empty for ${AGENT}"
-VERSION_TAG="${AICAGE_IMAGE_REPOSITORY}:${AGENT}-${BASE_ALIAS}-${AGENT_VERSION}"
-LATEST_TAG="${AICAGE_IMAGE_REPOSITORY}:${AGENT}-${BASE_ALIAS}"
+VERSION_TAG="${IMAGE_REF}:${AGENT}-${BASE_ALIAS}-${AGENT_VERSION}"
+LATEST_TAG="${IMAGE_REF}:${AGENT}-${BASE_ALIAS}"
 
 (
   echo "[build] Agent=${AGENT}"
   echo "Base=${BASE_ALIAS}"
-  echo "Repo=${AICAGE_IMAGE_REPOSITORY}"
+  echo "Repo=${IMAGE_REF}"
   echo "Version=${AGENT_VERSION}"
   echo "BaseImage=${BASE_IMAGE}"
   echo "Tags=${VERSION_TAG},${LATEST_TAG}"
@@ -83,6 +85,7 @@ LATEST_TAG="${AICAGE_IMAGE_REPOSITORY}:${AGENT}-${BASE_ALIAS}"
 docker build \
   --build-arg "BASE_IMAGE=${BASE_IMAGE}" \
   --build-arg "AGENT=${AGENT}" \
+  --build-arg "IMAGE_SOURCE_URL=${IMAGE_SOURCE_URL}" \
   --label "org.opencontainers.image.description=Agent image for ${AGENT}" \
   --tag "${VERSION_TAG}" \
   --tag "${LATEST_TAG}" \

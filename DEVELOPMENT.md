@@ -33,11 +33,36 @@ Setting from `config.yml`:
 
 - `AICAGE_IMAGE_REGISTRY` (default `ghcr.io`)
 - `AICAGE_IMAGE_BASE_REPOSITORY` (default `aicage/aicage-image-base`)
-- `AICAGE_IMAGE_REPOSITORY` (default `ghcr.io/aicage/aicage`)
+- `AICAGE_IMAGE_BASE_SOURCE_REPOSITORY` (default `aicage/aicage-image-base`)
+- `AICAGE_IMAGE_REPOSITORY` (default `aicage/aicage`)
+- `AICAGE_IMAGE_SOURCE_REPOSITORY` (default `aicage/aicage-image`)
 - Image tags use the agent version from `agents/<agent>/version.sh`.
 
 Base aliases are discovered from the latest release artifact
 `https://github.com/<base-repo>/releases/latest/download/bases.tar.gz`.
+
+## Fork Setup
+
+To test releases from a fork:
+
+1. Fork the repository.
+1. Enable GitHub Actions on the fork.
+1. Update `config.yml` for the fork namespace, for example:
+
+   ```yaml
+   AICAGE_IMAGE_BASE_REPOSITORY: aicage-dev/aicage-image-base
+   AICAGE_IMAGE_BASE_SOURCE_REPOSITORY: aicage-dev/aicage-image-base
+   AICAGE_IMAGE_REPOSITORY: aicage-dev/aicage
+   AICAGE_IMAGE_SOURCE_REPOSITORY: aicage-dev/aicage-image
+   ```
+
+1. Push a Git tag to trigger the publish workflow. Prefer prerelease-style tags such as
+   `0.1.0-beta.1` or `0.1.0-alpha.1`.
+1. First release action run only:
+   - One image building job likely fails with "cannot delete last/only tag of a package".
+   - Wait until the action run ends with failure, but many other successful building jobs.
+   - Then "Rerun failed jobs" in that action run.
+1. Make the published GHCR package public.
 
 ## Build
 
@@ -72,7 +97,7 @@ Smoke suites live in `tests/agents/smoke/`; use `bats` directly if you need to r
 
 ## Working with bases
 
-Base layers come from `ghcr.io/aicage/aicage-image-base`. Add or modify bases in that repository, then ensure
+Base layers come from the configured `AICAGE_IMAGE_BASE_REPOSITORY`. Add or modify bases in that repository, then ensure
 the latest release contains `bases.tar.gz` before building here.
 
 ## CI

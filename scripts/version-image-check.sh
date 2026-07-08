@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# shellcheck source=./scripts/common.sh
+source "${ROOT_DIR}/scripts/common.sh"
+load_config_file
+
 AGENTS_DIR="${1:-agents}"
-VERSION_CHECK_IMAGE="${2:-ghcr.io/aicage/aicage-image-util:agent-version}"
+VERSION_CHECK_IMAGE="${2:-${AICAGE_IMAGE_UTIL_VERSION_CHECK_IMAGE}}"
 had_errors=0
 
 get_image_version() {

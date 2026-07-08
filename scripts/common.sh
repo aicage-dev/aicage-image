@@ -34,6 +34,37 @@ load_config_file() {
   done < <(yq -er 'to_entries[] | [.key, (.value // "")] | @tsv' "${config_file}")
 }
 
+get_image_base_ref() {
+  printf '%s/%s\n' "${AICAGE_IMAGE_REGISTRY}" "${AICAGE_IMAGE_BASE_REPOSITORY}"
+}
+
+get_image_ref() {
+  printf '%s/%s\n' "${AICAGE_IMAGE_REGISTRY}" "${AICAGE_IMAGE_REPOSITORY}"
+}
+
+get_image_base_source_url() {
+  printf 'https://github.com/%s\n' "${AICAGE_IMAGE_BASE_SOURCE_REPOSITORY}"
+}
+
+get_image_source_url() {
+  printf 'https://github.com/%s\n' "${AICAGE_IMAGE_SOURCE_REPOSITORY}"
+}
+
+_get_github_workflows_identity_regexp() {
+  local repository="$1"
+  printf '^https://github\\.com/%s/\\.github/workflows/.*@(?:refs/.*/.*|[0-9a-f]{40})$\n' \
+    "${repository}"
+}
+
+get_release_workflow_identity_regexp() {
+  local repository="$1"
+  _get_github_workflows_identity_regexp "${repository}"
+}
+
+get_image_base_workflow_identity_regexp() {
+  _get_github_workflows_identity_regexp "${AICAGE_IMAGE_BASE_SOURCE_REPOSITORY}"
+}
+
 get_agent_field() {
   local agent="$1"
   local field="$2"

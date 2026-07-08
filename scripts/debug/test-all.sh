@@ -20,7 +20,7 @@ for agent_dir in "${AGENTS_DIR}"/*; do
   AGENT="$(basename "${agent_dir}")"
   AICAGE_BASE_ALIASES="$(get_bases "${AGENT}" "${BASES_TMPDIR}/bases" "${AICAGE_BASE_ALIASES:-}")"
   for BASE_ALIAS in ${AICAGE_BASE_ALIASES}; do
-    IMAGE="${AICAGE_IMAGE_REPOSITORY}:${AGENT}-${BASE_ALIAS}"
+    IMAGE="$(get_image_ref):${AGENT}-${BASE_ALIAS}"
     echo "[test-all] Testing ${IMAGE}" >&2
     "${ROOT_DIR}/scripts/test.sh" --image "${IMAGE}" --agent "${AGENT}" "$@"
   done

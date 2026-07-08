@@ -84,10 +84,15 @@ needs_rebuild() {
   local base_image_tag="$1"
   local final_image_tag="$2"
   local base_metadata_file="$3"
-  local base_repo="${AICAGE_IMAGE_REGISTRY}/${AICAGE_IMAGE_BASE_REPOSITORY}"
-  local final_repo="${AICAGE_IMAGE_REGISTRY}/${AICAGE_IMAGE_REPOSITORY}"
-  local base_image="${base_repo}:${base_image_tag}"
-  local final_image="${final_repo}:${final_image_tag}"
+  local base_repo
+  local final_repo
+  local base_image
+  local final_image
+
+  base_repo="$(get_image_base_ref)"
+  final_repo="$(get_image_ref)"
+  base_image="${base_repo}:${base_image_tag}"
+  final_image="${final_repo}:${final_image_tag}"
 
   echo "[needs-rebuild]: base_image=${base_image}" >&2
   echo "[needs-rebuild]: final_image=${final_image}" >&2

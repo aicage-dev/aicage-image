@@ -62,15 +62,18 @@ jobs:
           set -euo pipefail
           source scripts/common.sh
           load_config_file
-          BASE_IMAGE="${AICAGE_IMAGE_REGISTRY}/${AICAGE_IMAGE_BASE_REPOSITORY}:${BASE_ALIAS}"
+          BASE_IMAGE="$(get_image_base_ref):${BASE_ALIAS}"
+          IMAGE_SOURCE_URL="$(get_image_source_url)"
           IMAGE_TAG="aicage-non-redistributable-test:${AGENT}-${BASE_ALIAS}-${ARCH}"
           {
             echo "BASE_IMAGE=${BASE_IMAGE}"
             echo "IMAGE_TAG=${IMAGE_TAG}"
+            echo "IMAGE_SOURCE_URL=${IMAGE_SOURCE_URL}"
           } >> "$GITHUB_OUTPUT"
           {
             echo "BASE_IMAGE=${BASE_IMAGE}"
             echo "IMAGE_TAG=${IMAGE_TAG}"
+            echo "IMAGE_SOURCE_URL=${IMAGE_SOURCE_URL}"
           } >> "$GITHUB_ENV"
 
       - name: "Set up Buildx"
@@ -88,6 +91,7 @@ jobs:
           build-args: |
             BASE_IMAGE=${{ env.BASE_IMAGE }}
             AGENT=${{ env.AGENT }}
+            IMAGE_SOURCE_URL=${{ env.IMAGE_SOURCE_URL }}
           tags: |
             ${{ env.IMAGE_TAG }}
 

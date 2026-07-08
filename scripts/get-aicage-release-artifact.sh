@@ -6,14 +6,22 @@ set -euo pipefail
 # - curl
 # - tar
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# shellcheck source=./scripts/common.sh
+source "${ROOT_DIR}/scripts/common.sh"
+load_config_file
+
 AICAGE_REPO="$1"
 TARGET_DIR="$2"
 ARTIFACT_NAME="${3:-${AICAGE_REPO}.tar.gz}"
+REPOSITORY_URL="$(get_image_base_source_url)"
+RELEASE_WORKFLOW_IDENTITY_REGEXP="$(get_release_workflow_identity_regexp "${AICAGE_IMAGE_BASE_SOURCE_REPOSITORY}")"
 
 mkdir -p "${TARGET_DIR}"
 pushd "${TARGET_DIR}" >/dev/null
 
-echo "Downloading release artifact from 'github.com/aicage/${AICAGE_REPO}' to ${TARGET_DIR} ..." >&2
+echo "Downloading release artifact from '${REPOSITORY_URL}' to ${TARGET_DIR} ..." >&2
 
 for artifact in "${ARTIFACT_NAME}" SHA256SUMS SHA256SUMS.sigstore.json; do
   curl -fsSLO \
@@ -21,7 +29,7 @@ for artifact in "${ARTIFACT_NAME}" SHA256SUMS SHA256SUMS.sigstore.json; do
     --retry-all-errors \
     --retry-delay 2 \
     --max-time 600 \
-    "https://github.com/aicage/${AICAGE_REPO}/releases/latest/download/${artifact}"
+    "${REPOSITORY_URL}/releases/latest/download/${artifact}"
 done
 
 echo "Verifying signature ..." >&2
@@ -29,7 +37,7 @@ echo "Verifying signature ..." >&2
 cosign verify-blob \
   --bundle SHA256SUMS.sigstore.json \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  --certificate-identity-regexp "^https://github\.com/aicage/${AICAGE_REPO}/\.github/workflows/release\.yml@(?:refs/tags/.*|[0-9a-f]{40})$" \
+  --certificate-identity-regexp "${RELEASE_WORKFLOW_IDENTITY_REGEXP}" \
   SHA256SUMS \
    >&2
 
@@ -47,4 +55,4 @@ rm "${ARTIFACT_NAME}" SHA256SUMS SHA256SUMS.sigstore.json >&2
 
 popd >/dev/null
 
-echo "Done downloading release artifact from 'github.com/aicage/${AICAGE_REPO}' to ${TARGET_DIR}" >&2
+echo "Done downloading release artifact from '${REPOSITORY_URL}' to ${TARGET_DIR}" >&2
