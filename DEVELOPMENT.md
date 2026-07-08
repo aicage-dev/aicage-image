@@ -36,6 +36,7 @@ Setting from `config.yml`:
 - `AICAGE_IMAGE_BASE_SOURCE_REPOSITORY` (default `aicage/aicage-image-base`)
 - `AICAGE_IMAGE_REPOSITORY` (default `aicage/aicage`)
 - `AICAGE_IMAGE_SOURCE_REPOSITORY` (default `aicage/aicage-image`)
+- `AICAGE_BUILD_AGENT_FILTER` (default `".*"`; use a regex such as `"codex|claude"`)
 - Image tags use the agent version from `agents/<agent>/version.sh`.
 
 Base aliases are discovered from the latest release artifact
@@ -54,6 +55,7 @@ To test releases from a fork:
    AICAGE_IMAGE_BASE_SOURCE_REPOSITORY: aicage-dev/aicage-image-base
    AICAGE_IMAGE_REPOSITORY: aicage-dev/aicage
    AICAGE_IMAGE_SOURCE_REPOSITORY: aicage-dev/aicage-image
+   AICAGE_BUILD_AGENT_FILTER: "codex|claude"
    ```
 
 1. Push a Git tag to trigger the publish workflow. Prefer prerelease-style tags such as
@@ -91,7 +93,8 @@ Smoke suites live in `tests/agents/smoke/`; use `bats` directly if you need to r
 1. Create `agents/<agent>/install.sh` (executable) that installs the agent; fail fast on errors.
 2. Add `agents/<agent>/agent.yml` with any metadata that should appear as image labels.
    Optional filters: `base_exclude` and `base_distro_exclude` (lists).
-3. Add the agent to `AICAGE_AGENTS` in `config.yml` if it isn’t discovered automatically.
+3. Agents are discovered from `agents/<agent>/`; use `AICAGE_BUILD_AGENT_FILTER` in `config.yml`
+   if you want to build or test only a subset.
 4. Add smoke coverage in `tests/agents/smoke/<agent>.bats`.
 5. Document the agent in `README.md` if it should be visible to users.
 

@@ -18,9 +18,7 @@ bases_tmpdir="$(download_bases_archive)"
 full_images_file="$(mktemp)"
 echo '{"include":[]}' > "${full_images_file}"
 
-for dir in agents/*; do
-  [[ -d "${dir}" ]] || continue
-  agent="$(basename "${dir}")"
+while IFS= read -r agent; do
   build_local="$(get_agent_field "${agent}" build_local)"
   base_aliases="$(get_bases "${agent}" "${bases_tmpdir}/bases")"
   for base_alias in ${base_aliases}; do
@@ -63,7 +61,7 @@ for dir in agents/*; do
       mv "${full_images_file}.tmp" "${full_images_file}"
     done < <(get_base_architectures "${bases_tmpdir}/bases" "${base_alias}")
   done
-done
+done < <(list_configured_agents)
 
 images_file="$(mktemp)"
 nr_images_file="$(mktemp)"

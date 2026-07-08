@@ -169,9 +169,7 @@ enqueue_agent_checks() {
   local base_alias
   local dir
 
-  for dir in agents/*; do
-    [[ -d "${dir}" ]] || continue
-    agent="$(basename "${dir}")"
+  while IFS= read -r agent; do
     if is_agent_field_true "${agent}" build_local; then
       echo "Skipping non-redistributable agent ${agent}" >&2
       continue
@@ -188,7 +186,7 @@ enqueue_agent_checks() {
     for base_alias in ${base_aliases}; do
       launch_check "${agent}" "${base_alias}" "${agent_version}"
     done
-  done
+  done < <(list_configured_agents)
 }
 
 wait_for_checks() {
