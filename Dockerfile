@@ -18,7 +18,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN --mount=type=bind,source=agents/,target=/tmp/agents,readonly \
     mkdir -p /tmp/agents-run/${AGENT} && \
     cp -R /tmp/agents/${AGENT}/. /tmp/agents-run/${AGENT}/ && \
-    for script in /tmp/agents-run/${AGENT}/*.sh; do \
+    for script in "/tmp/agents-run/${AGENT}"/*.sh; do \
       sed -i 's/\r$//' "$script"; \
       chmod +x "$script"; \
     done && \
