@@ -6,6 +6,7 @@ ARG IMAGE_SOURCE_URL
 FROM ${BASE_IMAGE} AS runtime
 
 ARG AGENT
+ARG IMAGE_SOURCE_URL
 
 LABEL org.opencontainers.image.title="aicage" \
       org.opencontainers.image.description="Multi-base build for agentic developer CLIs" \
