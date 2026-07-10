@@ -42,6 +42,8 @@ Swap `codex` for `cline`, and choose any available `<base>` alias.
 - Starts as root, then creates a user matching `AICAGE_UID`/`AICAGE_GID`/`AICAGE_USER` (defaults
   `1000`/`1000`/`aicage`) and switches into it.
 - `/workspace` is created and owned by that user; mount your project there.
+- With rootless Docker on Linux, the container stays on uid `0` but keeps the host-style `HOME`
+  path so bind-mounted workspaces and agent config locations continue to behave as expected.
 
 ## Contributing
 
