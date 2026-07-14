@@ -3,10 +3,5 @@
 __pycache__/
 /artifacts
 dist/
-/node_modules/
 
 **/.coverage
-
-.roomodes
-# may contain API-keys
-.roo/mcp.json
