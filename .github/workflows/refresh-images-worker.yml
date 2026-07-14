@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Check latest release tag
         id: check
@@ -47,7 +49,6 @@ jobs:
     uses: ./.github/workflows/refresh-images-worker-matrix.yml
     with:
       aicage_version: ${{ github.ref_name }}
-    secrets: inherit
 
   matrix-retry:
     name: Retry rebuild matrix for ${{ github.ref_name }}
@@ -63,7 +64,6 @@ jobs:
     uses: ./.github/workflows/refresh-images-worker-matrix.yml
     with:
       aicage_version: ${{ github.ref_name }}
-    secrets: inherit
 
   matrix-result:
     name: Collect matrix result
@@ -79,20 +79,28 @@ jobs:
     steps:
       - name: Select successful refresh outputs
         id: select
+        env:
+          FRESHNESS_SHOULD_REFRESH: ${{ needs.freshness.outputs.SHOULD_REFRESH }}
+          MATRIX_BUILD_COUNT: ${{ needs.matrix.outputs.BUILD_COUNT }}
+          MATRIX_IMAGES: ${{ needs.matrix.outputs.MATRIX_IMAGES }}
+          MATRIX_RETRY_BUILD_COUNT: ${{ needs.matrix-retry.outputs.BUILD_COUNT }}
+          MATRIX_RETRY_IMAGES: ${{ needs.matrix-retry.outputs.MATRIX_IMAGES }}
+          MATRIX_RETRY_STATUS: ${{ needs.matrix-retry.outputs.STATUS }}
+          MATRIX_STATUS: ${{ needs.matrix.outputs.STATUS }}
         run: |
           set -euo pipefail
           matrix_images=""
           build_count=""
 
-          if [[ "${{ needs.freshness.outputs.SHOULD_REFRESH }}" != "true" ]]; then
+          if [[ "${FRESHNESS_SHOULD_REFRESH}" != "true" ]]; then
             matrix_images='{"include":[]}'
             build_count='0'
-          elif [[ "${{ needs.matrix.outputs.STATUS }}" == "success" ]]; then
-            matrix_images='${{ needs.matrix.outputs.MATRIX_IMAGES }}'
-            build_count='${{ needs.matrix.outputs.BUILD_COUNT }}'
-          elif [[ "${{ needs.matrix-retry.outputs.STATUS }}" == "success" ]]; then
-            matrix_images='${{ needs.matrix-retry.outputs.MATRIX_IMAGES }}'
-            build_count='${{ needs.matrix-retry.outputs.BUILD_COUNT }}'
+          elif [[ "${MATRIX_STATUS}" == "success" ]]; then
+            matrix_images="${MATRIX_IMAGES}"
+            build_count="${MATRIX_BUILD_COUNT}"
+          elif [[ "${MATRIX_RETRY_STATUS}" == "success" ]]; then
+            matrix_images="${MATRIX_RETRY_IMAGES}"
+            build_count="${MATRIX_RETRY_BUILD_COUNT}"
           else
             echo "Both matrix preparation attempts failed." >&2
             exit 1
@@ -125,4 +133,3 @@ jobs:
       git_ref: ${{ github.ref_name }}
       agent: ${{ matrix.agent }}
       base: ${{ matrix.base }}
-    secrets: inherit

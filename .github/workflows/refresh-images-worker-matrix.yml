@@ -33,6 +33,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Run matrix attempt
         id: matrix
@@ -47,6 +49,8 @@ jobs:
       - name: Record matrix attempt result
         id: result
         if: ${{ always() }}
+        env:
+          MATRIX_OUTCOME: ${{ steps.matrix.outcome }}
         run: |
           set -euo pipefail
-          printf 'STATUS=%s\n' "${{ steps.matrix.outcome }}" >> "${GITHUB_OUTPUT}"
+          printf 'STATUS=%s\n' "${MATRIX_OUTCOME}" >> "${GITHUB_OUTPUT}"

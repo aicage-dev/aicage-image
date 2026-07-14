@@ -34,8 +34,6 @@ run-name: Build agent image (${{ inputs.agent }}-${{ inputs.base }})
 
 permissions:
   contents: read
-  packages: write
-  id-token: write
   actions: read
 
 env:
@@ -56,6 +54,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           ref: ${{ inputs.git_ref || github.ref }}
+          persist-credentials: false
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
@@ -72,6 +71,8 @@ jobs:
   build:
     name: "${{ matrix.arch }}: Build and test ${{ inputs.base }}-${{ inputs.agent }}"
     needs: prepare
+    permissions:
+      packages: write
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -102,6 +103,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           ref: ${{ inputs.git_ref || github.ref }}
+          persist-credentials: false
 
       - name: Resolve OCI labels
         id: oci
@@ -202,19 +204,23 @@ jobs:
           } | tee /dev/stderr >> "$GITHUB_ENV"
 
       - name: Verify base image signature
+        env:
+          BASE_IMAGE_DIGEST_REF: ${{ env.BASE_IMAGE_DIGEST_REF }}
         run: |
           set -euo pipefail
           cosign verify \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             --certificate-identity-regexp "${BASE_IMAGE_COSIGN_IDENTITY_REGEXP}" \
-            "${{ env.BASE_IMAGE_DIGEST_REF }}"
+            "${BASE_IMAGE_DIGEST_REF}"
 
       - name: Verify base image manifest annotations
+        env:
+          BASE_IMAGE_DIGEST_REF: ${{ env.BASE_IMAGE_DIGEST_REF }}
         run: |
           set -euo pipefail
           expected_source="${BASE_IMAGE_SOURCE_URL}"
           docker buildx imagetools inspect \
-            --raw "${{ env.BASE_IMAGE_DIGEST_REF }}" \
+            --raw "${BASE_IMAGE_DIGEST_REF}" \
             | jq -e \
               --arg expected_source "$expected_source" '
               .annotations["org.opencontainers.image.source"] == $expected_source
@@ -263,18 +269,25 @@ jobs:
           tags: ${{ steps.untag_vars.outputs.image_test_tag_name }}
 
       - name: "Test: Pull final image for local tests"
+        env:
+          BUILD_IMAGE_DIGEST: ${{ steps.build_image.outputs.digest }}
         run: |
           set -euo pipefail
-          docker pull "${IMAGE_REF}@${{ steps.build_image.outputs.digest }}"
+          docker pull "${IMAGE_REF}@${BUILD_IMAGE_DIGEST}"
 
       - name: "Test: Verify OCI labels on final image"
+        env:
+          BUILD_IMAGE_DIGEST: ${{ steps.build_image.outputs.digest }}
+          EXPECTED_CREATED: ${{ steps.oci.outputs.created }}
+          EXPECTED_REVISION: ${{ steps.oci.outputs.revision }}
+          EXPECTED_VERSION: ${{ steps.config.outputs.VERSION_TAG }}
         run: |
           set -euo pipefail
-          expected_description="Agent image for ${{ env.AGENT }}"
-          expected_revision="${{ steps.oci.outputs.revision }}"
-          expected_created="${{ steps.oci.outputs.created }}"
-          expected_version="${{ steps.config.outputs.VERSION_TAG }}"
-          docker image inspect "${IMAGE_REF}@${{ steps.build_image.outputs.digest }}" \
+          expected_description="Agent image for ${AGENT}"
+          expected_revision="${EXPECTED_REVISION}"
+          expected_created="${EXPECTED_CREATED}"
+          expected_version="${EXPECTED_VERSION}"
+          docker image inspect "${IMAGE_REF}@${BUILD_IMAGE_DIGEST}" \
             | jq -e \
               --arg expected_description "$expected_description" \
               --arg expected_revision "$expected_revision" \
@@ -288,11 +301,15 @@ jobs:
             ' >/dev/null
 
       - name: "Test: Verify base provenance labels on final image"
+        env:
+          BASE_IMAGE_NAME: ${{ steps.config.outputs.BASE_IMAGE }}
+          BASE_IMAGE_DIGEST: ${{ steps.base-image-digest.outputs.DIGEST }}
+          BUILD_IMAGE_DIGEST: ${{ steps.build_image.outputs.digest }}
         run: |
           set -euo pipefail
-          expected_base_name="${{ steps.config.outputs.BASE_IMAGE }}"
-          expected_base_digest="${{ steps.base-image-digest.outputs.DIGEST }}"
-          docker image inspect "${IMAGE_REF}@${{ steps.build_image.outputs.digest }}" \
+          expected_base_name="${BASE_IMAGE_NAME}"
+          expected_base_digest="${BASE_IMAGE_DIGEST}"
+          docker image inspect "${IMAGE_REF}@${BUILD_IMAGE_DIGEST}" \
             | jq -e \
               --arg expected_base_name "$expected_base_name" \
               --arg expected_base_digest "$expected_base_digest" '
@@ -301,38 +318,47 @@ jobs:
             ' >/dev/null
 
       - name: "Test: Setup BATS testing framework"
-        uses: bats-core/bats-action@77d6fb60505b4d0d1d73e48bd035b55074bbfb43  # v4.0.0
+        uses: bats-core/bats-action@77d6fb60505b4d0d1d73e48bd035b55074bbfb43  # 4.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Test: Run smoke suites on final image"
+        env:
+          BUILD_IMAGE_DIGEST: ${{ steps.build_image.outputs.digest }}
         run: |
           set -euo pipefail
           scripts/test.sh \
-            --image "${IMAGE_REF}@${{ steps.build_image.outputs.digest }}" \
+            --image "${IMAGE_REF}@${BUILD_IMAGE_DIGEST}" \
             --agent "${AGENT}"
 
       - name: Export digest (amd64)
         id: out-amd64
         if: matrix.arch == 'amd64'
+        env:
+          BUILD_IMAGE_DIGEST: ${{ steps.build_image.outputs.digest }}
         run: |
           set -euo pipefail
           (
-            echo "INDEX_DIGEST=${{ steps.build_image.outputs.digest }}"
+            echo "INDEX_DIGEST=${BUILD_IMAGE_DIGEST}"
           ) | tee /dev/stderr >> "$GITHUB_OUTPUT"
 
       - name: Export digest (arm64)
         id: out-arm64
         if: matrix.arch == 'arm64'
+        env:
+          BUILD_IMAGE_DIGEST: ${{ steps.build_image.outputs.digest }}
         run: |
           set -euo pipefail
           (
-            echo "INDEX_DIGEST=${{ steps.build_image.outputs.digest }}"
+            echo "INDEX_DIGEST=${BUILD_IMAGE_DIGEST}"
           ) | tee /dev/stderr >> "$GITHUB_OUTPUT"
 
   multiarch:
     name: Run multi-arch sign/provenance/publish
     needs: build
+    permissions:
+      packages: write
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - name: Log in to the container registry
@@ -344,17 +370,22 @@ jobs:
 
       - name: Prepare digests for multi-arch publish action
         id: platform-digests
+        env:
+          INDEX_DIGEST_AMD64: ${{ needs.build.outputs.INDEX_DIGEST_amd64 }}
+          INDEX_DIGEST_ARM64: ${{ needs.build.outputs.INDEX_DIGEST_arm64 }}
+          INPUT_AGENT: ${{ inputs.agent }}
+          INPUT_BASE: ${{ inputs.base }}
         run: |
           set -euo pipefail
           platform_digests_file="$(mktemp)"
-          if [[ -n "${{ needs.build.outputs.INDEX_DIGEST_amd64 }}" ]]; then
-            printf '%s\n' "linux/amd64=${{ needs.build.outputs.INDEX_DIGEST_amd64 }}" >> "${platform_digests_file}"
+          if [[ -n "${INDEX_DIGEST_AMD64}" ]]; then
+            printf '%s\n' "linux/amd64=${INDEX_DIGEST_AMD64}" >> "${platform_digests_file}"
           fi
-          if [[ -n "${{ needs.build.outputs.INDEX_DIGEST_arm64 }}" ]]; then
-            printf '%s\n' "linux/arm64=${{ needs.build.outputs.INDEX_DIGEST_arm64 }}" >> "${platform_digests_file}"
+          if [[ -n "${INDEX_DIGEST_ARM64}" ]]; then
+            printf '%s\n' "linux/arm64=${INDEX_DIGEST_ARM64}" >> "${platform_digests_file}"
           fi
           if [[ ! -s "${platform_digests_file}" ]]; then
-            echo "No platform digests produced for ${{ inputs.base }}/${{ inputs.agent }}" >&2
+            echo "No platform digests produced for ${INPUT_BASE}/${INPUT_AGENT}" >&2
             exit 1
           fi
           {
@@ -384,26 +415,37 @@ jobs:
             org.opencontainers.image.base.digest=${{ needs.build.outputs.BASE_IMAGE_DIGEST }}
 
       - name: Verify base provenance annotations on published manifest
+        env:
+          EXPECTED_BASE_DIGEST: ${{ needs.build.outputs.BASE_IMAGE_DIGEST }}
+          EXPECTED_BASE_NAME: ${{ needs.build.outputs.BASE_IMAGE_NAME }}
+          EXPECTED_CREATED: ${{ needs.build.outputs.CREATED }}
+          EXPECTED_DESCRIPTION: Agent image for ${{ inputs.agent }}
+          EXPECTED_IMAGE_REF: ${{ needs.build.outputs.IMAGE_REF }}
+          EXPECTED_IMAGE_SOURCE_URL: ${{ needs.build.outputs.IMAGE_SOURCE_URL }}
+          EXPECTED_REVISION: ${{ needs.build.outputs.REVISION }}
+          EXPECTED_VERSION: ${{ needs.build.outputs.VERSION_TAG }}
+          PUBLISHED_MANIFEST_DIGEST: ${{ steps.publish.outputs.manifest_digest }}
         run: |
           set -euo pipefail
-          expected_base_name="${{ needs.build.outputs.BASE_IMAGE_NAME }}"
-          expected_base_digest="${{ needs.build.outputs.BASE_IMAGE_DIGEST }}"
-          expected_description="Agent image for ${{ inputs.agent }}"
-          expected_revision="${{ needs.build.outputs.REVISION }}"
-          expected_created="${{ needs.build.outputs.CREATED }}"
-          expected_version="${{ needs.build.outputs.VERSION_TAG }}"
+          expected_base_name="${EXPECTED_BASE_NAME}"
+          expected_base_digest="${EXPECTED_BASE_DIGEST}"
+          expected_description="${EXPECTED_DESCRIPTION}"
+          expected_revision="${EXPECTED_REVISION}"
+          expected_created="${EXPECTED_CREATED}"
+          expected_version="${EXPECTED_VERSION}"
           docker buildx imagetools inspect \
-            --raw "${{ needs.build.outputs.IMAGE_REF }}@${{ steps.publish.outputs.manifest_digest }}" \
+            --raw "${EXPECTED_IMAGE_REF}@${PUBLISHED_MANIFEST_DIGEST}" \
             | jq -e \
               --arg expected_base_name "$expected_base_name" \
               --arg expected_base_digest "$expected_base_digest" \
               --arg expected_description "$expected_description" \
+              --arg expected_image_source_url "$EXPECTED_IMAGE_SOURCE_URL" \
               --arg expected_revision "$expected_revision" \
               --arg expected_created "$expected_created" \
               --arg expected_version "$expected_version" '
               .annotations["org.opencontainers.image.title"] == "aicage"
               and .annotations["org.opencontainers.image.description"] == $expected_description
-              and .annotations["org.opencontainers.image.source"] == "${{ needs.build.outputs.IMAGE_SOURCE_URL }}"
+              and .annotations["org.opencontainers.image.source"] == $expected_image_source_url
               and .annotations["org.opencontainers.image.licenses"] == "Apache-2.0"
               and .annotations["org.opencontainers.image.revision"] == $expected_revision
               and .annotations["org.opencontainers.image.created"] == $expected_created
