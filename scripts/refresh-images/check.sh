@@ -164,7 +164,7 @@ append_build() {
   # The lock is held until the block ends, so this append runs alone.
   {
     flock -x 9
-    printf '%s\t%s\n' "${agent}" "${base_alias}" >> "${BUILD_LIST}"
+    printf '%s\t%s\n' "${agent}" "${base_alias}" >>"${BUILD_LIST}"
   } 9>"${BUILD_LIST_LOCK}"
 }
 
@@ -206,7 +206,7 @@ main() {
 
   load_config_file
 
-  if (( FORCE_BUILD )); then
+  if ((FORCE_BUILD)); then
     echo "Forcing build for ${AGENT} (${BASE_ALIAS})"
     append_build "${AGENT}" "${BASE_ALIAS}"
     return 0

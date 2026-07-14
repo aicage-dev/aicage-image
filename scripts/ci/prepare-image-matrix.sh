@@ -16,7 +16,7 @@ load_config_file
 
 bases_tmpdir="$(download_bases_archive)"
 full_images_file="$(mktemp)"
-echo '{"include":[]}' > "${full_images_file}"
+echo '{"include":[]}' >"${full_images_file}"
 
 while IFS= read -r agent; do
   build_local="$(get_agent_field "${agent}" build_local)"
@@ -57,7 +57,7 @@ while IFS= read -r agent; do
             }
           ]
         ' \
-        "${full_images_file}" > "${full_images_file}.tmp"
+        "${full_images_file}" >"${full_images_file}.tmp"
       mv "${full_images_file}.tmp" "${full_images_file}"
     done < <(get_base_architectures "${bases_tmpdir}/bases" "${base_alias}")
   done
@@ -68,10 +68,10 @@ nr_images_file="$(mktemp)"
 
 jq -c \
   '{include: ([.include[] | select(.build_local == false) | {agent, base}] | unique)}' \
-  "${full_images_file}" > "${images_file}"
+  "${full_images_file}" >"${images_file}"
 jq -c \
   '{include: [.include[] | select(.build_local == true) | del(.build_local)]}' \
-  "${full_images_file}" > "${nr_images_file}"
+  "${full_images_file}" >"${nr_images_file}"
 
 echo "Redistributable image matrix:" >&2
 jq '.' "${images_file}" >&2

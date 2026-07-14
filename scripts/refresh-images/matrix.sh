@@ -39,7 +39,7 @@ load_base_metadata_file() {
   local base_last_layer
 
   base_repo="$(get_image_base_ref)"
-  : > "${metadata_file}"
+  : >"${metadata_file}"
   while IFS= read -r base_alias; do
     [[ -n "${base_alias}" ]] || continue
     base_image="${base_repo}:${base_alias}"
@@ -67,7 +67,7 @@ load_base_metadata_file() {
         "${base_alias}" \
         "${arch}" \
         "${base_digest}" \
-        "${base_last_layer}" >> "${metadata_file}"
+        "${base_last_layer}" >>"${metadata_file}"
     done < <(get_base_architectures "${bases_dir}" "${base_alias}")
   done < <(list_base_aliases "${bases_dir}")
 }
@@ -141,7 +141,7 @@ launch_check() {
 
   # Keep the worker invocation explicit; only --force-build is optional.
   optional_args=""
-  if (( FORCE_BUILD )); then
+  if ((FORCE_BUILD)); then
     optional_args="--force-build"
   fi
 
@@ -209,7 +209,7 @@ build_matrix_json() {
   local base_alias
 
   build_matrix_file="$(mktemp)"
-  echo '{"include":[]}' > "${build_matrix_file}"
+  echo '{"include":[]}' >"${build_matrix_file}"
   while IFS=$'\t' read -r agent base_alias; do
     [[ -n "${agent}" ]] || continue
     # GitHub Actions expects a single JSON object with an `include` array.
@@ -224,9 +224,9 @@ build_matrix_json() {
           }
         ]
       ' \
-      "${build_matrix_file}" > "${build_matrix_file}.tmp"
+      "${build_matrix_file}" >"${build_matrix_file}.tmp"
     mv "${build_matrix_file}.tmp" "${build_matrix_file}"
-  done < "${BUILD_LIST}"
+  done <"${BUILD_LIST}"
 
   build_count="$(jq -r '.include | length' "${build_matrix_file}")"
   if [[ "${build_count}" -eq 0 ]]; then

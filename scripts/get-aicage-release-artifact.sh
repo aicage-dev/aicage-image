@@ -39,7 +39,7 @@ cosign verify-blob \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   --certificate-identity-regexp "${RELEASE_WORKFLOW_IDENTITY_REGEXP}" \
   SHA256SUMS \
-   >&2
+  >&2
 
 echo "Verifying checksums ..." >&2
 

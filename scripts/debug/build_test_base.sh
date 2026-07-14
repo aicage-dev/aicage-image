@@ -14,10 +14,10 @@ while IFS= read -r agent; do
 
   echo "Testing agent: ${agent}"
 
-  scripts/debug/build.sh --base "${BASE}" --agent "${agent}" \
-    || ( echo "Build agent ${agent} failed" && false )
+  scripts/debug/build.sh --base "${BASE}" --agent "${agent}" ||
+    (echo "Build agent ${agent} failed" && false)
 
   image_ref="$(get_image_ref)"
-  scripts/test.sh --image "${image_ref}:${agent}-${BASE}" --agent "${agent}" \
-    || ( echo "Testing agent ${agent} failed" && false )
+  scripts/test.sh --image "${image_ref}:${agent}-${BASE}" --agent "${agent}" ||
+    (echo "Testing agent ${agent} failed" && false)
 done < <(list_configured_agents)
