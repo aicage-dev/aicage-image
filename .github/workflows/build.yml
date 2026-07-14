@@ -44,7 +44,7 @@ env:
 
 jobs:
   prepare:
-    name: "${{ matrix.arch }}: Prepare architecture matrix"
+    name: "Prepare architecture matrix"
     runs-on: ubuntu-latest
     env:
       BASE_ALIAS: ${{ inputs.base }}
@@ -135,11 +135,11 @@ jobs:
           set -euo pipefail
           source scripts/common.sh
           load_config_file
-          if is_agent_field_true "${AGENT}" build_local; then
+          if is_agent_field_true "${AGENT}" "build_local"; then
             echo "Agent '${AGENT}' is non-redistributable; build.yml should not run for it." >&2
             exit 1
           fi
-          AGENT_VERSION="$(agents/${AGENT}/version.sh)"
+          AGENT_VERSION="$("agents/${AGENT}/version.sh")"
           if [[ -z "${AGENT_VERSION}" ]]; then
             echo "Agent version is empty for ${AGENT}" >&2
             exit 1
