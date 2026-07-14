@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]]; do
       BASE_ALIAS="$2"
       shift 2
       ;;
-    -h|--help)
+    -h | --help)
       usage
       ;;
     --)

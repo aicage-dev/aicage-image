@@ -40,7 +40,7 @@ while [[ $# -gt 0 ]]; do
       AGENT="$2"
       shift 2
       ;;
-    -h|--help)
+    -h | --help)
       usage
       ;;
     *)
@@ -49,8 +49,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "${IMAGE_REF}" ]] || { log "--image is required"; usage; }
-[[ -n "${AGENT}" ]] || { log "--agent is required"; usage; }
+[[ -n "${IMAGE_REF}" ]] || {
+  log "--image is required"
+  usage
+}
+[[ -n "${AGENT}" ]] || {
+  log "--agent is required"
+  usage
+}
 
 log "Running smoke tests via bats"
 AICAGE_IMAGE="${IMAGE_REF}" AGENT="${AGENT}" bats "${SMOKE_DIR}" "$@"
