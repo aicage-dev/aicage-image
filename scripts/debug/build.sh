@@ -18,7 +18,7 @@ Options:
   -h, --help           Show this help and exit
 
 Examples:
-  scripts/debug/build.sh --agent cline --base fedora
+  scripts/debug/build.sh --agent claude --base fedora
   scripts/debug/build.sh --agent codex --base ubuntu
 USAGE
   exit 1

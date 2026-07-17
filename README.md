@@ -5,7 +5,8 @@ base layers from `ghcr.io/aicage/aicage-image-base`.
 
 ## What’s included
 
-- Agents: `cline` and `codex`.
+- Agents: `agy`, `claude`, `codex`, `copilot`, `crush`, `droid`, `gemini`, `goose`, `opencode`,
+  and `qwen`.
 - Bases: aliases such as `ubuntu`, `fedora`, and `debian` (discovered from base-layer tags).
 - Multi-arch support: `linux/amd64` and `linux/arm64`.
 
@@ -32,10 +33,10 @@ docker run -it --rm \
   -e AICAGE_GID=$(id -g) \
   -e AICAGE_USER=$(id -un) \
   -v "$(pwd)":/workspace \
-  ghcr.io/aicage/aicage:cline-ubuntu
+  ghcr.io/aicage/aicage:codex-ubuntu
 ```
 
-Swap `codex` for `cline`, and choose any available `<base>` alias.
+Swap `codex` for any other agent name, and choose any available `<base>` alias.
 
 ## Behavior inside the container
 
