@@ -138,8 +138,7 @@ jobs:
             exit 1
           fi
           ESCAPED_CURRENT_AICAGE_VERSION="$(regex_escape "${CURRENT_AICAGE_VERSION}")"
-          ARCH_LIST="arm64|amd64"
-          EXCLUDE_TAGS_REGEX="^(${AGENT_TAG_PREFIX_LIST})-(${BASE_LIST})(-${ESCAPED_CURRENT_AICAGE_VERSION})?(-(${ARCH_LIST}))?$"
+          EXCLUDE_TAGS_REGEX="^(${AGENT_TAG_PREFIX_LIST})-(${BASE_LIST})(-${ESCAPED_CURRENT_AICAGE_VERSION})?$"
 
           {
             echo "exclude_tags_regex=${EXCLUDE_TAGS_REGEX}"
