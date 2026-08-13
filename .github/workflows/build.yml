@@ -234,7 +234,6 @@ jobs:
           context: .
           push: true
           provenance: mode=max
-          sbom: true
           build-args: |
             BASE_IMAGE=${{ env.BASE_IMAGE_DIGEST_REF }}
             AGENT=${{ env.AGENT }}
