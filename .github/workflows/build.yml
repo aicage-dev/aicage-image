@@ -234,7 +234,6 @@ jobs:
           context: .
           push: true
           provenance: mode=max
-          sbom: true
           build-args: |
             BASE_IMAGE=${{ env.BASE_IMAGE_DIGEST_REF }}
             AGENT=${{ env.AGENT }}
@@ -330,6 +329,13 @@ jobs:
           scripts/test.sh \
             --image "${IMAGE_REF}@${BUILD_IMAGE_DIGEST}" \
             --agent "${AGENT}"
+
+      - name: Generate and attest SBOM
+        uses: gh-workflow/image-sbom@0eb75eb57ce1d0aac3072bfff19207ac42539261  # v1.0.1
+        with:
+          image: ${{ env.IMAGE_NAME }}@${{ steps.build_image.outputs.digest }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Export digest (amd64)
         id: out-amd64
