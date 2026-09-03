@@ -12,6 +12,9 @@ elif command -v claude >/dev/null 2>&1; then
   install -m 0755 "$(command -v claude)" /usr/local/bin/claude
 fi
 
+# Remove root-home artifacts left by the installer; the image uses /usr/local/bin.
+rm -rf /root/.claude /root/.local/bin/claude /root/.local/share/claude
+
 if ! command -v claude >/dev/null 2>&1; then
   echo "[install_claude] 'claude' executable not found after installation." >&2
   exit 1
