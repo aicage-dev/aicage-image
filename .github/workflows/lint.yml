@@ -19,7 +19,7 @@ jobs:
           persist-credentials: false
 
       - name: Ensure workflow actions use immutable refs
-        uses: joshjohanning/ensure-immutable-actions@9f5dad6bb6148bd29ff0d874de6a8cc70af08fa9  # v2.6.2
+        uses: joshjohanning/ensure-immutable-actions@95f404c7ba212d486ec843666f0ffbd080959f63  # v2.7.1
         with:
           include-first-party: 'true'
           write-job-summary: 'on-failure-only'
