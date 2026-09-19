@@ -47,6 +47,4 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: "Test: Run scripts/lint.sh"
-        run: |
-          chmod +x scripts/*.sh scripts/debug/*.sh
-          scripts/lint.sh
+        run: scripts/lint.sh
