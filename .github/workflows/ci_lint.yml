@@ -2,6 +2,9 @@ name: "CI: lint"
 
 "on":
   workflow_call: {}
+  schedule:
+    # At 03:17 on Monday.
+    - cron: "17 3 * * 1"
   workflow_dispatch:
     inputs:
       fix_mode:
