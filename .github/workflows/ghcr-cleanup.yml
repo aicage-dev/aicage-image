@@ -72,8 +72,6 @@ jobs:
             printf '%s' "$1" | sed -E 's/[][(){}.^$*+?|\\-]/\\\\&/g'
           }
 
-          readonly SEMVER_REGEX='^[0-9]+\.[0-9]+\.[0-9]+$'
-
           mapfile -t AGENTS < <(list_configured_agents)
           if (( ${#AGENTS[@]} == 0 )); then
             echo "No agent folders found under ./agents" >&2
@@ -116,8 +114,8 @@ jobs:
             ESCAPED_AGENT_TAG_PREFIXES+=("${escaped_agent}")
 
             agent_version="$(agents/"${agent}"/version.sh)"
-            if [[ ! "${agent_version}" =~ ${SEMVER_REGEX} ]]; then
-              echo "Agent version is not semver for ${agent}: ${agent_version}" >&2
+            if [[ -z "${agent_version}" ]]; then
+              echo "Agent version is empty for ${agent}" >&2
               exit 1
             fi
             escaped_agent_version="$(regex_escape "${agent_version}")"
@@ -133,10 +131,6 @@ jobs:
           AGENT_TAG_PREFIX_LIST="$(IFS='|'; echo "${ESCAPED_AGENT_TAG_PREFIXES[*]}")"
           BASE_LIST="$(IFS='|'; echo "${ESCAPED_BASES[*]}")"
           CURRENT_AICAGE_VERSION="${RELEASES[0]}"
-          if [[ ! "${CURRENT_AICAGE_VERSION}" =~ ${SEMVER_REGEX} ]]; then
-            echo "Latest release tag is not semver: ${CURRENT_AICAGE_VERSION}" >&2
-            exit 1
-          fi
           ESCAPED_CURRENT_AICAGE_VERSION="$(regex_escape "${CURRENT_AICAGE_VERSION}")"
           EXCLUDE_TAGS_REGEX="^(${AGENT_TAG_PREFIX_LIST})-(${BASE_LIST})(-${ESCAPED_CURRENT_AICAGE_VERSION})?$"
 
