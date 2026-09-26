@@ -332,7 +332,7 @@ jobs:
             --agent "${AGENT}"
 
       - name: Generate and attest SBOM
-        uses: gh-workflow/image-sbom@6c0fffba4127bf166b8d0746332a83bd9826dd81  # v1.0.4
+        uses: gh-workflow/image-sbom@b6d8de80de938ddebdf32dae7966386de8387db4  # v1.0.5
         with:
           image: ${{ env.IMAGE_REF }}@${{ steps.build_image.outputs.digest }}
           registry-username: ${{ github.actor }}
