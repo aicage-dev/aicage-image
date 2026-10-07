@@ -5,7 +5,7 @@ base layers from `ghcr.io/aicage/aicage-image-base`.
 
 ## What’s included
 
-- Agents: `agy`, `claude`, `codex`, `copilot`, `crush`, `droid`, `gemini`, `goose`, `opencode`,
+- Agents: `agy`, `claude`, `codex`, `copilot`, `droid`, `gemini`, `goose`, `opencode`,
   and `qwen`.
 - Bases: aliases such as `ubuntu`, `fedora`, and `debian` (discovered from base-layer tags).
 - Multi-arch support: `linux/amd64` and `linux/arm64`.
