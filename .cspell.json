@@ -4,6 +4,7 @@
   "ignorePaths": ["**/.git/**"],
   "words": [
     "AICAGE",
+    "Auggie",
     "Buildx",
     "Dockerfiles",
     "HEALTHCHECK",
@@ -13,6 +14,8 @@
     "aicage",
     "ampcode",
     "argjson",
+    "auggie",
+    "augmentcode",
     "binfmt",
     "bubblewrap",
     "buildx",
