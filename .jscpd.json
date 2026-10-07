@@ -22,7 +22,7 @@
     "**/*.zip",
     "**/*.bin",
 
-    "agents/goose/version.sh",
+    "agents/kimi/version.sh",
     "scripts/latest-release-tag.sh"
   ]
 }
