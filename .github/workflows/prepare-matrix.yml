@@ -16,13 +16,13 @@ permissions:
   contents: read
 
 env:
-  RUNNER_AMD64: ubuntu-latest
+  RUNNER_AMD64: ubuntu-26.04
   RUNNER_ARM64: ubuntu-24.04-arm
 
 jobs:
   matrix:
     name: Build matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     env:
       ROOT_DIR: ${{ github.workspace }}
     outputs:

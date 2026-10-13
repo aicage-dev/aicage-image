@@ -18,7 +18,7 @@ permissions:
 jobs:
   freshness:
     name: Check release freshness
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       SHOULD_REFRESH: ${{ steps.check.outputs.SHOULD_REFRESH }}
     steps:
@@ -67,7 +67,7 @@ jobs:
 
   matrix-result:
     name: Collect matrix result
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - freshness
       - matrix
