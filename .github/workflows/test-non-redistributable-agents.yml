@@ -30,7 +30,7 @@ run-name: Test non-redistributable agents (${{ github.ref_name }})
         type: string
 
 concurrency:
-  group: test-non-redistributable-agents-${{ github.ref_name }}
+  group: ${{ github.workflow_ref }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 permissions:
