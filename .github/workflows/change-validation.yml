@@ -2,11 +2,12 @@ name: Change Validation
 run-name: Change validation (${{ github.ref_name }})
 
 "on":
-  pull_request: {}
+  pull_request:
   push:
     branches:
       - main
-  workflow_dispatch: {}
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,9 +18,27 @@ jobs:
 
   version-image-check:
     name: Check agents version.sh with util-image
+    needs: lint
     uses: ./.github/workflows/version-image-check.yml
 
   matrix:
     name: Build matrix
     needs: lint
     uses: ./.github/workflows/prepare-matrix.yml
+
+  required-status-checks:
+    name: "Required Status Checks"  # do not change, used in ruleset "Required Status Checks"
+    if: ${{ always() }}
+    needs:
+      - lint
+      - version-image-check
+      - matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check validation job results
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          jq --exit-status \
+            'all(.[]; .result == "success" or .result == "skipped")' \
+            <<< "$NEEDS"
