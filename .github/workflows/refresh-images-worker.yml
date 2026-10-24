@@ -8,7 +8,7 @@ run-name: Refresh agent-version images (${{ github.ref_name }})
   workflow_dispatch: {}
 
 concurrency:
-  group: refresh-images
+  group: ${{ github.workflow_ref }}
   cancel-in-progress: false
 
 permissions:

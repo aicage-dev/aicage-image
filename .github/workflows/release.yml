@@ -8,7 +8,7 @@ run-name: Release (${{ github.ref_name }})
 
 # Kill running refresh-images.yml workflows
 concurrency:
-  group: refresh-images
+  group: ${{ github.workflow_ref }}
   cancel-in-progress: true
 
 permissions:
