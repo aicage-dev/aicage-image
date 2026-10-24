@@ -39,6 +39,10 @@ jobs:
   change-validation:
     needs: verify-tagged-commit
     uses: ./.github/workflows/change-validation.yml
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
 
   matrix:
     name: Build matrix
