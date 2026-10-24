@@ -19,7 +19,7 @@ run-name: Test non-redistributable agents (${{ github.ref_name }})
         required: true
         default: >-
           {"include":[{"agent":"bar","base":"foo","arch":"amd64",
-          "platform":"linux/amd64","runner":"ubuntu-latest"},{"agent":"bar",
+          "platform":"linux/amd64","runner":"ubuntu-26.04"},{"agent":"bar",
           "base":"foo","arch":"arm64","platform":"linux/arm64",
           "runner":"ubuntu-24.04-arm"}]}
         type: string
