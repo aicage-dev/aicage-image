@@ -128,5 +128,5 @@ jobs:
           set -euo pipefail
           gh release create "${GITHUB_REF_NAME}" \
             dist/* \
-            --target "${GITHUB_SHA}" \
+            --verify-tag \
             --generate-notes
