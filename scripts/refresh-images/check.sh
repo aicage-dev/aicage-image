@@ -73,6 +73,19 @@ list_base_metadata_architectures() {
     "${metadata_file}"
 }
 
+# TODO: can spawn unneccessary rebuilds, see here:
+# https://github.com/aicage/aicage-image/actions/runs/45327064887/job/138221179314#step:3:481
+#
+# Rebuild reason for codex (alpine):
+#    [needs-rebuild]: base_image=ghcr.io/aicage/aicage-image-base:alpine
+#    [needs-rebuild]: final_image=ghcr.io/aicage/aicage:codex-0.172.0-alpine-1.5.7
+#    Command failed (skopeo inspect --no-tags docker://ghcr.io/aicage/aicage:codex-0.172.0-alpine-1.5.7) [exit 2]
+#      skopeo --command-timeout 60s inspect --retry-times 3 --no-tags docker://ghcr.io/aicage/aicage:codex-0.172.0-alpine-1.5.7
+#      time="2026-11-24T04:47:32Z" level=fatal msg="Error parsing image name \"docker://ghcr.io/aicage/aicage:codex-0.172.0-alpine-1.5.7\": reading manifest codex-0.172.0-alpine-1.5.7 in ghcr.io/aicage/aicage: manifest unknown"
+#    ghcr.io/aicage/aicage:codex-0.172.0-alpine-1.5.7 is missing
+#  Needs build codex (alpine) for 1.5.7
+
+
 # Return codes:
 #   0 => rebuild required
 #   1 => image is up to date
