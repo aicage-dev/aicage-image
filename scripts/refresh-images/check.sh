@@ -88,6 +88,7 @@ needs_rebuild() {
   local final_repo
   local base_image
   local final_image
+  local status
 
   base_repo="$(get_image_base_ref)"
   final_repo="$(get_image_ref)"
@@ -97,9 +98,16 @@ needs_rebuild() {
   echo "[needs-rebuild]: base_image=${base_image}" >&2
   echo "[needs-rebuild]: final_image=${final_image}" >&2
 
-  if ! skopeo_inspect --no-tags "docker://${final_image}" >/dev/null; then
-    echo "${final_image} is missing"
-    return 0
+  if skopeo_inspect --no-tags "docker://${final_image}" >/dev/null; then
+    :
+  else
+    status=$?
+    if [[ "${status}" -eq 2 ]]; then
+      echo "${final_image} is missing"
+      return 0
+    fi
+    echo "Failed to inspect ${final_image}" >&2
+    return 2
   fi
 
   while IFS= read -r arch; do
