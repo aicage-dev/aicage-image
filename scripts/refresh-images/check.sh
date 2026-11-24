@@ -85,7 +85,6 @@ list_base_metadata_architectures() {
 #    ghcr.io/aicage/aicage:codex-0.172.0-alpine-1.5.7 is missing
 #  Needs build codex (alpine) for 1.5.7
 
-
 # Return codes:
 #   0 => rebuild required
 #   1 => image is up to date
