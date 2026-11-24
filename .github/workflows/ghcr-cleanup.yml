@@ -56,7 +56,7 @@ jobs:
           persist-credentials: false
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532  # v4.1.3
+        uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab  # v4.1.4
 
       - name: Build agent/base/release exclude-tags-regex
         id: regex
@@ -146,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cleanup old images
-        uses: ghcr-manager/ghcr-cleanup-manager@d08ccded0677884a09a833d9db5a94f2e766160d  # v1.1.15
+        uses: ghcr-manager/ghcr-cleanup-manager@633196c2b235d20f75e6a747ab865cf6e25eed4b  # v1.1.17
         with:
           command: cleanup
           token: ${{ secrets.GHCR_CLEANUP_PAT != '' && secrets.GHCR_CLEANUP_PAT || github.token }}
