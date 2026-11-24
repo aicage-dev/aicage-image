@@ -21,7 +21,7 @@ run-name: Test non-redistributable agents (${{ github.ref_name }})
           {"include":[{"agent":"bar","base":"foo","arch":"amd64",
           "platform":"linux/amd64","runner":"ubuntu-latest"},{"agent":"bar",
           "base":"foo","arch":"arm64","platform":"linux/arm64",
-          "runner":"ubuntu-24.04-arm"}]}
+          "runner":"ubuntu-26.04-arm"}]}
         type: string
       git_ref:
         description: Git ref to check out (tag/branch/SHA). Defaults to the workflow ref.
